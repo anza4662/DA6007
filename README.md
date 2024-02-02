@@ -11,6 +11,7 @@ https://www.openml.org/search?type=data&status=active&qualities.NumberOfClasses=
 - Calculate Concrete Strength
 https://www.kaggle.com/datasets/prathamtripathi/regression-with-neural-networking/data
 
-
 - Beginner datasets
 https://www.kaggle.com/datasets/ahmettezcantekin/beginner-datasets
+
+- IDK https://hastie.su.domains/ElemStatLearn/
