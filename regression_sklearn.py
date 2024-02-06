@@ -1,21 +1,12 @@
 import numpy as np
-import pandas
 import pandas as pd
 
 from sklearn.neural_network import MLPRegressor
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.colors import PowerNorm
 matplotlib.rcParams.update({'font.size': 15})
-import seaborn as sns
-
-
-def debug():
-    print(sns.load_dataset("anscombe"))
-
 
 def normalize_list(lst):
     least = min(lst)
