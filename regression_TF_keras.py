@@ -1,14 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
 from tensorflow.keras.layers import Normalization, Dense, BatchNormalization
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.callbacks import EarlyStopping
 
 
 def plot_loss(history):
@@ -31,9 +27,6 @@ def main():
     test_X = test.drop("strength", axis=1)
     test_y = np.array(test["strength"])
 
-    # sns.pairplot(train_X[['Cement', 'Blast Furnace Slag', 'Fly Ash', 'Water', 'Superplasticizer',
-    #                      'Coarse Aggregate', 'Fine Aggregate', 'Age (day)']], diag_kind='kde')
-
     normalizer = Normalization(axis=-1)
     normalizer.adapt(np.array(train_X))
 
@@ -54,9 +47,7 @@ def main():
     ])
 
     model.compile(loss="mean_squared_error", optimizer="adam")
-    print(model.summary())
-    history = model.fit(train_X, train_y, epochs=5000, verbose=1,
-                        validation_split=0.2)
+    history = model.fit(train_X, train_y, epochs=500, validation_split=0.2)
 
     plot_loss(history)
     plt.show()

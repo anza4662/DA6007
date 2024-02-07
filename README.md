@@ -15,3 +15,8 @@ https://www.kaggle.com/datasets/prathamtripathi/regression-with-neural-networkin
 https://www.kaggle.com/datasets/ahmettezcantekin/beginner-datasets
 
 - IDK https://hastie.su.domains/ElemStatLearn/
+
+
+## Code
+
+https://machinelearningmastery.com/visualizing-the-vanishing-gradient-problem/
