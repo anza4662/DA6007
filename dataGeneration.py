@@ -1,12 +1,29 @@
 import random
 import math
-import pandas
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.ticker import LinearLocator
+from matplotlib import cm
+import datashader as ds, colorcet
+
 
 def main():
+    df = create_data()
+    visualize_data(df)
+
+
+def visualize_data(df):
+    print(df.describe().transpose())
+    sns.pairplot(df, kind="hist", diag_kind="kde")
+    df.to_csv("data_5_features_100k")
+    plt.show()
+
+
+def create_data():
     n = 100000
-    a, b = -0.5, 1
+    a, b = -2, 2
     data = []
     for i in range(n):
         x1 = random.uniform(a, b)
@@ -14,16 +31,16 @@ def main():
         x3 = random.uniform(a, b)
         x4 = random.uniform(a, b)
         x5 = random.uniform(a, b)
-        # val = math.sin(x1*x2*x3*x4*x5) + math.atan(x1*x2) - math.e ** (x4*x5) - (1/(1 + (x1*x2)**2)) + (x3**5)
-        val = 0.2 * math.atan(x4*x3) * (1/(1 + x2**2)) - (x3**5) + (2 * math.e ** (x3*x5) + ((x4**5) - 2 * (x1**3))) + (0.05 * math.e ** (x4*x5)) + math.sin(x1*x2 - x3*x4 + x5)/(7+x2)
+
+        val = 0.5 * math.sin(x1*x2*x3*x4*x5) - 5 * math.atan(x3*x4) + (1/(1 + (x2 + (x4*x5))**2)) + 0.01 * (((x1-x3)**5) - 10 * ((x2 * x5)**2))
+
         row = [x1, x2, x3, x4, x5, val]
         data.append(row)
 
-    df = pandas.DataFrame(data, columns=["x1", "x2", "x3", "x4", "x5", "val"])
-    print(df.describe().transform)
-    sns.pairplot(df, kind="hist", diag_kind="kde")
-    df.to_csv("data_5_features")
-    plt.show()
+    df = pd.DataFrame(data, columns=["x1", "x2", "x3", "x4", "x5", "val"])
+    df.to_csv("data_5_features_100k", index=False)
+    return df
+
 
 if __name__ == '__main__':
     main()
