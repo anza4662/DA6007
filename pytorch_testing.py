@@ -53,7 +53,7 @@ model = nn.Sequential(
 loss_fn = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), weight_decay=0)
 
-n_epochs = 100
+n_epochs = 30
 minibatch_size = 10
 batch_start = torch.arange(0, len(train_X), minibatch_size)
 
@@ -105,9 +105,11 @@ model.load_state_dict(best_weights)
 
 print("Best test error: %.2f" % best_mse)
 
-fig, axs = plt.subplots(1, 2)
+fig, axs = plt.subplots(1, 3, figsize=(12, 6))
 fig.set_layout_engine(le.ConstrainedLayoutEngine(wspace=0.05, w_pad=0.1, h_pad=0.1))
 fig.suptitle(f"Network training stats. (Size = {size})")
+
+print(history["val_loss"])
 
 # Plot history
 axs[0].plot(history["val_loss"], label="val_loss")
@@ -119,4 +121,19 @@ axs[0].legend()
 axs[1].plot(history["grad_norm"], color="red")
 axs[1].set_ylabel("Gradient norm (L2)")
 axs[1].set_xlabel("Epoch")
+
+weights_l = []
+for i in model.parameters():
+    for j in i.tolist():
+        if type(j) != float:
+            for k in j:
+                weights_l.append(k)
+        else:
+            weights_l.append(j)
+
+# Plot weight distribution
+axs[2].hist(weights_l)
+axs[2].set_ylabel("Number of occurrences")
+axs[2].set_xlabel("Weight value")
+
 plt.show()
