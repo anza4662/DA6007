@@ -28,8 +28,8 @@ def main():
     # Cpu is faster for smaller networks (size < 100)
     # dev = "cuda" or dev = "cpu"
     dev = "cuda"
-    width = 50
-    n_epochs = 300
+    width = 100
+    n_epochs = 500
     minibatch_size = 10
     noise_where = "out"  # "in", "out" or none
     noise_percent = 0.15
@@ -154,7 +154,7 @@ def main():
                 params_lst.append(j)
 
     # Plot weight distribution
-    axs[2].hist(params_lst)
+    axs[2].hist(params_lst, bins=20)
     axs[2].set_ylabel("Number of occurrences")
     axs[2].set_xlabel("Parameter values")
 
