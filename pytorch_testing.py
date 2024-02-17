@@ -11,15 +11,19 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import matplotlib.layout_engine as le
 
+# Data (Parameter for non-linearity)
+# Noise variance
+# Architecture
+# Batch normalization (why before relu?)
+# Skip connections (Every two layers)
+# Initialization (How is the network initialized)
 
 # Some code taken from https://machinelearningmastery.com/building-a-regression-model-in-pytorch/
 
-def add_noise(arr, p):
+
+def add_noise(arr):
     v = np.var(arr) / np.abs(np.max(arr) - np.min(arr))
-    noise = np.random.normal(0, v, np.prod(arr.shape))
-    noise[0:int(len(arr) * (1 - p))] = 0
-    np.random.shuffle(noise)
-    noise = noise.reshape(arr.shape)
+    noise = np.random.normal(0, v, arr.shape)
     arr += noise
     return arr
 
@@ -28,11 +32,8 @@ def main():
     # Cpu is faster for smaller networks (size < 100)
     # dev = "cuda" or dev = "cpu"
     dev = "cuda"
-    width = 100
-    n_epochs = 500
+    n_epochs = 10
     minibatch_size = 10
-    noise_where = "out"  # "in", "out" or none
-    noise_percent = 0.15
 
     device = torch.device(dev)
 
@@ -42,14 +43,7 @@ def main():
 
     train_X, test_X, train_y, test_y = train_test_split(X, y, test_size=0.3, shuffle=True)
 
-    noise_string = []
-
-    if noise_where == "in":
-        train_X = add_noise(train_X, noise_percent)
-        noise_string = f", gaussian noise on input {noise_percent * 100} %"
-    elif noise_where == "out":
-        train_y = add_noise(train_y, noise_percent)
-        noise_string = f", gaussian noise on output {noise_percent * 100} %"
+    train_y = add_noise(train_y)
 
     scaler = StandardScaler()
     scaler.fit(train_X)
@@ -62,18 +56,20 @@ def main():
     test_X = torch.tensor(test_X, dtype=torch.float32).to(device)
     test_y = torch.tensor(test_y, dtype=torch.float32).reshape(-1, 1).to(device)
 
+    network_architecture = [5, 10, 20, 10, 5, 2, 1]
+
     model = nn.Sequential(
-        nn.Linear(5, width),
+        nn.Linear(5, 10),
         nn.ReLU(),
-        nn.Linear(width, width),
+        nn.Linear(10, 20),
         nn.ReLU(),
-        nn.Linear(width, width),
+        nn.Linear(20, 10),
         nn.ReLU(),
-        nn.Linear(width, width),
+        nn.Linear(10, 5),
         nn.ReLU(),
-        nn.Linear(width, width),
+        nn.Linear(5, 2),
         nn.ReLU(),
-        nn.Linear(width, 1),
+        nn.Linear(2, 1),
     ).to(device)
 
     loss_fn = nn.MSELoss()
@@ -131,7 +127,7 @@ def main():
 
     fig, axs = plt.subplots(1, 3, figsize=(12, 6))
     fig.set_layout_engine(le.ConstrainedLayoutEngine(wspace=0.05, w_pad=0.1, h_pad=0.1))
-    fig.suptitle(f"Network training stats. (width = {width}" + noise_string + ")")
+    fig.suptitle(f"Network training stats. Architecture = {network_architecture} \n epochs = {n_epochs}, batch size = {minibatch_size}")
 
     # Plot history
     axs[0].plot(history["val_loss"], label="val_loss")
