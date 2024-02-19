@@ -10,9 +10,9 @@ import datashader as ds, colorcet
 
 
 def main():
-    df = create_data()
-    visualize_data(df)
-    # functionPlot()
+    # f = create_data()
+    # visualize_data(df)
+    functionPlot()
 
 
 def f(x):
@@ -21,9 +21,17 @@ def f(x):
 
 def functionPlot():
     domain = np.linspace(0, 15, 200)
-    plt.plot(domain, f(domain), color='red')
+    image = f(domain)
+    n = 0.125
+
+    v = (np.var(image) / np.abs(np.max(image) - np.min(image))) * n
+    noise = np.random.normal(0, v, len(image))
+    image += noise
+
+    plt.plot(domain, image, color='red')
+    plt.title(f"noise with var = var(f) / range(f) \n with factor {n}")
     plt.xlabel("x")
-    plt.ylabel("f(x)")
+    plt.ylabel("f(x) + noise")
     plt.show()
 
 
