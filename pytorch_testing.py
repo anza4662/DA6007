@@ -11,15 +11,22 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import matplotlib.layout_engine as le
 
-# Data (Parameter for non-linearity)                    DONE
-# Noise variance                                        DONE
-# Architecture                                          DONE
-# Batch normalization (why before relu?)                DONE
-# Skip connections (Every two layers)                   DONE
-# Initialization (How is the network initialized)       DONE
 
 # Some code taken from https://machinelearningmastery.com/building-a-regression-model-in-pytorch/
 
+# Data (Parameter for non-linearity)                    DONE
+# Noise variance                                        DONE
+# Architecture                                          DONE
+# Batch normalization                                   DONE
+# Skip connections                                      DONE
+# Initialization (How is the network initialized)       DONE
+# Weight distribution                                   DONE
+# Adam parameters
+# Why does adam have 18 different states?
+# Should batch norm. have learnable parameters? And why before ReLu?
+# How much noise do we want?
+# Skip connection to output?
+# Variance for initialization?
 
 #                      x
 #             ------   |
@@ -89,6 +96,20 @@ class Net(nn.Module):
         return z11
 
 
+def get_weights(model):
+    layer_weights = {}
+    layers = [("lay1", model.lin1), ("lay2", model.lin2), ("lay3", model.lin3),
+              ("lay4", model.lin4), ("lay5", model.lin5), ("lay6", model.lin6)]
+
+    for name, lay in layers:
+        layer_weights[name] = []
+        for w in lay.weight.tolist():
+            for k in w:
+                layer_weights[name].append(k)
+
+    return layer_weights
+
+
 def init_normal(module):
     if type(module) == nn.Linear:
         nn.init.normal_(module.weight, mean=0, std=0.01)
@@ -103,22 +124,29 @@ def add_noise(arr, delta):
 
 
 def main():
+    torch.manual_seed(0)
+    np.random.seed(0)
+
     # Cpu is faster for smaller networks (size < 100)
     # dev = "cuda" or dev = "cpu"
-    dev = "cuda"
-    n_epochs = 300
+    dev = "cpu"
+    n_epochs = 240
     minibatch_size = 10
-    delta_noise = 0.5
+    delta_noise = 1
     data_set = "data/data5features_0to20_50k"
     device = torch.device(dev)
+    learning_rate = 1e-2
+    betas_adam = (0.87, 0.997)
+    data_set_size = 10000
 
     data = pd.read_csv(data_set)
 
     X = np.array(data.drop("val", axis=1))
     y = np.array(data["val"])
 
-    # X = X[0:20000]
-    # y = y[0:20000]
+    if data_set_size != 500000:
+        X = X[0:data_set_size]
+        y = y[0:data_set_size]
 
     train_X, test_X, train_y, test_y = train_test_split(X, y, test_size=0.3, shuffle=True)
 
@@ -141,17 +169,22 @@ def main():
     model.apply(init_normal)
 
     loss_fn = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), weight_decay=0)
-
+    optimizer = optim.Adam(model.parameters(), weight_decay=0, lr=learning_rate, betas=betas_adam)
     batch_start = torch.arange(0, len(train_X), minibatch_size)
 
+    epoch_saved = []
+    weights_per_layer_epoch = []
     best_mse = np.inf
     best_weights = None
     history = {
         "val_loss": [],
         "train_loss": [],
-        "grad_norm": []
+        "grad_norm": [],
+        "first_moment": [],
+        "second_moment": []
     }
+
+    weight_cut = int(n_epochs / 6)
 
     for epoch in range(n_epochs):
         model.train()
@@ -176,8 +209,21 @@ def main():
 
         grad_norm = np.sqrt(sum([(torch.norm(p.grad) ** 2).tolist() for p in model.parameters()]))
 
+        first_mom = np.average(
+            [float(torch.norm(val["exp_avg"])) for val in optimizer.state_dict()["state"].values()]
+        )
+        second_mom = np.average(
+            [float(torch.norm(val["exp_avg_sq"])) for val in optimizer.state_dict()["state"].values()]
+        )
+
+        if (epoch + 1) % weight_cut == 0:
+            weights_per_layer_epoch.append(get_weights(model))
+            epoch_saved.append(epoch + 1)
+
         history["train_loss"].append(loss.item())
         history["grad_norm"].append(grad_norm)
+        history["first_moment"].append(first_mom)
+        history["second_moment"].append(second_mom)
 
         # Validation
         model.eval()
@@ -193,39 +239,44 @@ def main():
 
     print("Best test error: %.2f" % best_mse)
 
-    fig, axs = plt.subplots(1, 3, figsize=(12, 6))
-    fig.set_layout_engine(le.ConstrainedLayoutEngine(wspace=0.05, w_pad=0.1, h_pad=0.1))
-    fig.suptitle(f"Network training stats. Architecture = {network_architecture} \n epochs = {n_epochs}, "
-                 f"batch size = {minibatch_size}, \n delta_noise = {delta_noise}, data set = {data_set}")
+    plt.rcParams.update({'font.size': 15})
+    fig, axs = plt.subplots(3, 3, figsize=(24, 16))
+    fig.set_layout_engine()
+    fig.suptitle(f"Network training stats. Architecture = {network_architecture}  epochs = {n_epochs}, "
+                 f"batch size = {minibatch_size}, \n delta_noise = {delta_noise}, data set size = {data_set_size /1000}k, "
+                 f"learning rate = {learning_rate}, betas = {betas_adam}")
+    fig.tight_layout(pad=3.5)
 
     # Plot history
-    axs[0].plot(history["val_loss"], label="val_loss")
-    axs[0].plot(history["train_loss"], label="train_loss")
-    axs[0].set_ylabel("MSE")
-    axs[0].set_xlabel("Epoch")
-    axs[0].legend()
+    axs[0][0].plot(history["val_loss"], label="val_loss")
+    axs[0][0].plot(history["train_loss"], label="train_loss")
+    axs[0][0].set_ylabel("MSE")
+    axs[0][0].set_xlabel("Epoch")
+    axs[0][0].legend()
 
-    axs[1].plot(history["grad_norm"], color="red")
-    axs[1].set_ylabel("Gradient norm (L2)")
-    axs[1].set_xlabel("Epoch")
+    axs[0][1].plot(history["first_moment"], color="red")
+    axs[0][1].set_title("First moment")
+    axs[0][1].set_ylabel("Norm")
+    axs[0][1].set_xlabel("Epoch")
 
-    layer_weights = {}
-
-    layers = [("lay1", model.lin1), ("lay2", model.lin2), ("lay3", model.lin3),
-              ("lay4", model.lin4), ("lay5", model.lin5), ("lay6", model.lin6)]
-
-    for name, lay in layers:
-        layer_weights[name] = []
-        for w in lay.weight.tolist():
-            for k in w:
-                layer_weights[name].append(k)
+    axs[0][2].plot(history["second_moment"], color="magenta")
+    axs[0][2].set_title("Second moment")
+    axs[0][2].set_ylabel("Norm")
+    axs[0][2].set_xlabel("Epoch")
 
     # Plot weight distribution per layer
-    for name in layer_weights.keys():
-        axs[2].hist(layer_weights[name], bins=25, alpha=0.5, label=name)
-    axs[2].legend()
-    axs[2].set_ylabel("Number of occurrences")
-    axs[2].set_xlabel("Parameter values")
+    flattened_axs = [item for row in axs[1:] for item in row]
+
+    alpha_lst = [0.9, 0.5, 0.4, 0.7, 0.8, 0.9]
+    for (subplt, dct, ep) in zip(flattened_axs, weights_per_layer_epoch, epoch_saved):
+
+        for (name, a) in zip(dct.keys(), alpha_lst):
+            subplt.hist(dct[name], histtype="bar", bins=25, label=name, alpha=a)
+        subplt.set_title(f"Epoch {ep}")
+        subplt.legend()
+
+    fig.text(0.5, 0.02, "Weight value", ha="center", va="center")
+    fig.text(0.02, 0.3, "Number of occurrences", ha="center", va="center", rotation="vertical")
 
     plt.show()
 
