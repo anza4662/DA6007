@@ -14,164 +14,56 @@ import matplotlib.layout_engine as le
 
 # Some code taken from https://machinelearningmastery.com/building-a-regression-model-in-pytorch/
 
-#TODO:
-# Data (Parameter for non-linearity)                    DONE
-# Noise variance                                        DONE
-# Architecture                                          DONE
-# Batch normalization                                   DONE
-# Skip connections                                      SORT OF
-# Initialization (How is the network initialized)       DONE
-# Weight distribution                                   DONE
-# Adam parameters                                       DONE
-
-# Questions:
-# Why does adam have 18 different states?
-# Should batch norm. have learnable parameters? And why before ReLu?
-# How much noise do we want?
-# Variance for initialization?
-
-#                     Net1
-#
-#                      x
-#      linear(5,20)--  |
-#           |      linear(5, 10)
-#           |      batch norm
-#           |         relu
-#           |      linear(10,20)
-#           |      batch norm
-#           -------> + |
-#                     relu
-#       linear(20,5)-- |
-#           |      linear(20,10)
-#           |      batch norm
-#           |         relu
-#           |      linear(10,5)
-#           |      batch norm
-#           -------> + |
-#                     relu
-#                  linear(5,2)
-#                  batch norm
-#                     relu
-#                  linear(2,1)
-#                      |
-#                      y
-
-class Net1(nn.Module):
+class Net3(nn.Module):
     def __init__(self):
         super().__init__()
         self.lin1 = nn.Linear(5, 10)
         self.lin2 = nn.Linear(10, 20)
 
-        self.lin3 = nn.Linear(20, 10)
-        self.lin4 = nn.Linear(10, 5)
+        self.lin3 = nn.Linear(20, 40)
+        self.lin4 = nn.Linear(40, 20)
 
-        self.lin5 = nn.Linear(5, 2)
-        self.lin6 = nn.Linear(2, 1)
+        self.lin5 = nn.Linear(20, 10)
+        self.lin6 = nn.Linear(10, 5)
+
+        self.lin7 = nn.Linear(5, 2)
+        self.lin8 = nn.Linear(2, 1)
 
         batch_learnable_params = False
         self.bn1 = nn.BatchNorm1d(10, affine=batch_learnable_params)
         self.bn2 = nn.BatchNorm1d(20, affine=batch_learnable_params)
-        self.bn3 = nn.BatchNorm1d(10, affine=batch_learnable_params)
-        self.bn4 = nn.BatchNorm1d(5, affine=batch_learnable_params)
-        self.bn5 = nn.BatchNorm1d(2, affine=batch_learnable_params)
+        self.bn3 = nn.BatchNorm1d(40, affine=batch_learnable_params)
+        self.bn4 = nn.BatchNorm1d(20, affine=batch_learnable_params)
+        self.bn5 = nn.BatchNorm1d(10, affine=batch_learnable_params)
+        self.bn6 = nn.BatchNorm1d(5, affine=batch_learnable_params)
+        self.bn7 = nn.BatchNorm1d(2, affine=batch_learnable_params)
 
         self.skip1 = nn.Linear(5, 20)
-        self.skip2 = nn.Linear(20, 5)
+        self.skip2 = nn.Linear(20, 20)
+        self.skip3 = nn.Linear(20, 5)
 
     def forward(self, x):
-        z1 = self.lin1(x)
-        z_skip1 = self.skip1(x)
-        z2 = torch.relu(self.bn1(z1))
-        z3 = self.lin2(z2)
-        z4 = torch.relu(self.bn2(z3) + z_skip1)
+        skip_1 = self.skip1(x)
+        z1 = torch.relu(self.bn1(self.lin1(x)))
+        z2 = torch.relu(self.bn2(self.lin2(z1)) + skip_1)
 
-        z_skip2 = self.skip2(z4)
-        z5 = self.lin3(z4)
-        z6 = torch.relu(self.bn3(z5))
-        z7 = self.lin4(z6)
-        z8 = torch.relu(self.bn4(z7) + z_skip2)
+        skip_2 = self.skip2(z2)
+        z3 = torch.relu(self.bn3(self.lin3(z2)))
+        z4 = torch.relu(self.bn4(self.lin4(z3)) + skip_2)
 
-        z9 = self.lin5(z8)
-        z10 = torch.relu(self.bn5(z9))
-        z11 = self.lin6(z10)
-        return z11
-
-
-#                    Net2
-#
-#                      x
-#                      |
-#                 linear(5, 10)
-#                  batch norm
-#                     relu
-#           --------   |
-#           |      linear(10,20)
-#           |      batch norm
-#           |         relu
-#           |      linear(20,10)
-#           |      batch norm
-#           -------> + |
-#                     relu
-#      linear(10,2)--  |
-#           |      linear(10,5)
-#           |      batch norm
-#           |          relu
-#           |      linear(5,2)
-#           |      batch norm
-#           -------> + |
-#                     relu
-#                  linear(2,1)
-#                      |
-#                      y
-
-
-class Net2(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.lin1 = nn.Linear(5, 10)
-        self.lin2 = nn.Linear(10, 20)
-
-        self.lin3 = nn.Linear(20, 10)
-        self.lin4 = nn.Linear(10, 5)
-
-        self.lin5 = nn.Linear(5, 2)
-        self.lin6 = nn.Linear(2, 1)
-
-        batch_learnable_params = False
-        self.bn1 = nn.BatchNorm1d(10, affine=batch_learnable_params)
-        self.bn2 = nn.BatchNorm1d(20, affine=batch_learnable_params)
-        self.bn3 = nn.BatchNorm1d(10, affine=batch_learnable_params)
-        self.bn4 = nn.BatchNorm1d(5, affine=batch_learnable_params)
-        self.bn5 = nn.BatchNorm1d(2, affine=batch_learnable_params)
-
-        self.skip = nn.Linear(10, 2)
-
-    def forward(self, x):
-        z1 = self.lin1(x)
-        z2 = torch.relu(self.bn1(z1))
-
-        skip_no_lin = z2
-
-        z3 = self.lin2(z2)
-        z4 = torch.relu(self.bn2(z3))
-        z5 = self.lin3(z4)
-        z6 = torch.relu(self.bn3(z5) + skip_no_lin)
-
-        skip_with_lin = self.skip(z6)
-
-        z7 = self.lin4(z6)
-        z8 = torch.relu(self.bn4(z7))
-        z9 = self.lin5(z8)
-        z10 = torch.relu(self.bn5(z9) + skip_with_lin)
-
-        out = self.lin6(z10)
-        return out
+        skip_3 = self.skip3(z4)
+        z5 = torch.relu(self.bn5(self.lin5(z4)))
+        z6 = torch.relu(self.bn6(self.lin6(z5)) + skip_3)
+        z7 = torch.relu(self.bn7(self.lin7(z6)))
+        z8 = self.lin8(z7)
+        return z8
 
 
 def get_weights(model):
     layer_weights = {}
     layers = [("lay1", model.lin1), ("lay2", model.lin2), ("lay3", model.lin3),
-              ("lay4", model.lin4), ("lay5", model.lin5), ("lay6", model.lin6)]
+              ("lay4", model.lin4), ("lay5", model.lin5), ("lay6", model.lin6),
+              ("lay7", model.lin7), ("lay8", model.lin8)]
 
     for name, lay in layers:
         layer_weights[name] = []
@@ -202,12 +94,12 @@ def main():
     # Cpu is faster for smaller networks (size < 100)
     # dev = "cuda" or dev = "cpu"
     dev = "cpu"
-    n_epochs = 840
+    n_epochs = 240
     minibatch_size = 10
     delta_noise = 1
     data_set = "data/data5features_0to20_50k"
     device = torch.device(dev)
-    learning_rate = 1e-2
+    learning_rate = 5e-3
     betas_adam = (0.9, 0.999)
     data_set_size = 10000
 
@@ -235,7 +127,7 @@ def main():
     test_X = torch.tensor(test_X, dtype=torch.float32).to(device)
     test_y = torch.tensor(test_y, dtype=torch.float32).reshape(-1, 1).to(device)
 
-    model = Net2().to(device)
+    model = Net3().to(device)
     model.apply(init_normal)
 
     loss_fn = nn.MSELoss()
@@ -312,7 +204,7 @@ def main():
     plt.rcParams.update({'font.size': 15})
     fig, axs = plt.subplots(3, 3, figsize=(24, 16))
     fig.set_layout_engine()
-    fig.suptitle(f"Network training stats. Architecture = Net2,  epochs = {n_epochs}, "
+    fig.suptitle(f"Network training stats. Architecture = Net3,  epochs = {n_epochs}, "
                  f"batch size = {minibatch_size}, \n delta_noise = {delta_noise}, data set size = {data_set_size / 1000}k, "
                  f"learning rate = {learning_rate}, betas = {betas_adam}")
     fig.tight_layout(pad=3.5)
@@ -337,7 +229,7 @@ def main():
     # Plot weight distribution per layer
     flattened_axs = [item for row in axs[1:] for item in row]
 
-    alpha_lst = [0.9, 0.5, 0.4, 0.7, 0.8, 0.9]
+    alpha_lst = [0.9, 0.6, 0.4, 0.6, 0.6, 0.7, 0.8, 0.9]
     for (subplt, dct, ep) in zip(flattened_axs, weights_per_layer_epoch, epoch_saved):
 
         for (name, a) in zip(dct.keys(), alpha_lst):
