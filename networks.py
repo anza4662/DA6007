@@ -185,7 +185,6 @@ class Net2(nn.Module):
 #                      y
 
 
-
 class Net3(nn.Module):
     def __init__(self):
         super().__init__()
