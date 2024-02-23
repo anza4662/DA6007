@@ -47,15 +47,14 @@ def main():
     torch.manual_seed(0)
     np.random.seed(0)
 
-    # Cpu is faster for smaller networks (size < 100)
     # dev = "cuda" or dev = "cpu"
-    dev = "cpu"
+    dev = "cuda"
     n_epochs = 840
     minibatch_size = 10
     delta_noise = 1
     data_set = "data/data5features_0to20_50k"
     device = torch.device(dev)
-    learning_rate = 1e-2
+    learning_rate = 5e-3
     betas_adam = (0.9, 0.999)
     data_set_size = 10000
 

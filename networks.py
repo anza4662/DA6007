@@ -14,7 +14,6 @@ import torch.nn as nn
 # Questions:
 # Why does adam have 18 different states?
 # Should batch norm. have learnable parameters? And why before ReLu?
-# How much noise do we want?
 # Variance for initialization?
 
 #                     Net1
@@ -154,6 +153,7 @@ class Net2(nn.Module):
 
         out = self.lin6(z10)
         return out
+
 
 class Net3(nn.Module):
     def __init__(self):
