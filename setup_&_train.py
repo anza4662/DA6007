@@ -50,20 +50,20 @@ def main():
     dev = "cpu"
     device = torch.device(dev)
 
-    n_epochs = 900
+    n_epochs = 540
     minibatch_size = 50
 
     # Data set settings
-    delta_noise = 1
-    data_set = "data/data5features_0to20_50k"
-    data_set_size = 10000
+    delta_noise = 0.9
+    data_set = "data/data5features_0to30_50k_v2"
+    data_set_size = 30000
 
     # Adam parameters
-    learning_rate = 1e-1
+    learning_rate = 9e-4
     betas_adam = (0.9, 0.999)
 
     # model
-    model = networks.Net6().to(device)
+    model = networks.Net1().to(device)
 
     ylim = False
     ylim_train_curve = 0.1
