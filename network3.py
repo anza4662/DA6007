@@ -76,7 +76,7 @@ def get_weights(model):
 
 def init_normal(module):
     if type(module) == nn.Linear:
-        nn.init.normal_(module.weight, mean=0, std=0.01)
+        nn.init.normal_(module.weight, mean=0, std=0.1)
         nn.init.zeros_(module.bias)
 
 
@@ -99,7 +99,7 @@ def main():
     delta_noise = 1
     data_set = "data/data5features_0to20_50k"
     device = torch.device(dev)
-    learning_rate = 5e-3
+    learning_rate = 5e-1
     betas_adam = (0.9, 0.999)
     data_set_size = 10000
 
