@@ -198,3 +198,96 @@ class Net3(nn.Module):
         z7 = torch.relu(self.bn7(self.lin7(z6)))
         z8 = self.lin8(z7)
         return z8
+
+
+#                     Net4
+#
+#                      x
+#                      | -----------|
+#                 linear(5, 10)     |
+#                  batch norm       |
+#                     relu          |
+#           --------   |            |
+#           |      linear(10,20)    |
+#           |      batch norm       |
+#           |         relu          |
+#           |      linear(20,10)    |
+#           |      batch norm       |
+#           -------> + |            |
+#                     relu          |
+#                  linear(10,5)     |
+#                  batch norm       |
+#                      | + <---------
+#                     relu
+#                  linear(5,2)
+#                  batch norm
+#                     relu
+#                  linear(2,1)
+#                      |
+#                      y
+
+
+class Net4(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lin1 = nn.Linear(5, 10)
+        self.lin2 = nn.Linear(10, 20)
+
+        self.lin3 = nn.Linear(20, 10)
+        self.lin4 = nn.Linear(10, 5)
+
+        self.lin5 = nn.Linear(5, 2)
+        self.lin6 = nn.Linear(2, 1)
+
+        batch_learnable_params = False
+        self.bn1 = nn.BatchNorm1d(10, affine=batch_learnable_params)
+        self.bn2 = nn.BatchNorm1d(20, affine=batch_learnable_params)
+        self.bn3 = nn.BatchNorm1d(10, affine=batch_learnable_params)
+        self.bn4 = nn.BatchNorm1d(5, affine=batch_learnable_params)
+        self.bn5 = nn.BatchNorm1d(2, affine=batch_learnable_params)
+
+    def forward(self, x):
+        skip1 = x
+
+        z1 = self.lin1(x)
+        z2 = torch.relu(self.bn1(z1))
+
+        skip2 = z2
+
+        z3 = self.lin2(z2)
+        z4 = torch.relu(self.bn2(z3))
+        z5 = self.lin3(z4)
+        z6 = torch.relu(self.bn3(z5) + skip2)
+
+        z7 = self.lin4(z6)
+        z8 = torch.relu(self.bn4(z7) + skip1)
+        z9 = self.lin5(z8)
+        z10 = torch.relu(self.bn5(z9))
+
+        out = self.lin6(z10)
+        return out
+
+
+class Net5(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lin1 = nn.Linear(5, 10)
+        self.lin2 = nn.Linear(10, 5)
+
+        self.lin3 = nn.Linear(5, 2)
+        self.lin4 = nn.Linear(2, 1)
+
+        batch_learnable_params = False
+        self.bn1 = nn.BatchNorm1d(10, affine=batch_learnable_params)
+        self.bn2 = nn.BatchNorm1d(5, affine=batch_learnable_params)
+        self.bn3 = nn.BatchNorm1d(2, affine=batch_learnable_params)
+
+    def forward(self, x):
+        z1 = self.lin1(x)
+        z2 = torch.relu(self.bn1(z1))
+        z3 = self.lin2(z2)
+        z4 = torch.relu(self.bn2(z3))
+        z5 = self.lin3(z4)
+        z6 = torch.relu(self.bn3(z5))
+        out = self.lin4(z6)
+        return out

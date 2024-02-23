@@ -18,20 +18,19 @@ import matplotlib.layout_engine as le
 
 def get_weights(model):
     layer_weights = {}
-    layers = [("lay1", model.lin1), ("lay2", model.lin2), ("lay3", model.lin3),
-              ("lay4", model.lin4), ("lay5", model.lin5), ("lay6", model.lin6)]
 
-    for name, lay in layers:
-        layer_weights[name] = []
-        for w in lay.weight.tolist():
-            for k in w:
-                layer_weights[name].append(k)
+    for name, layer in model.named_modules():
+        if type(layer) is nn.Linear and name.startswith("lin"):
+            layer_weights[name] = []
+            for w in layer.weight.tolist():
+                for k in w:
+                    layer_weights[name].append(k)
 
     return layer_weights
 
 
 def init_normal(module):
-    if type(module) == nn.Linear:
+    if type(module) is nn.Linear:
         nn.init.normal_(module.weight, mean=0, std=0.01)
         nn.init.zeros_(module.bias)
 
@@ -48,15 +47,16 @@ def main():
     np.random.seed(0)
 
     # dev = "cuda" or dev = "cpu"
-    dev = "cuda"
-    n_epochs = 840
-    minibatch_size = 10
+    dev = "cpu"
+    n_epochs = 270
+    minibatch_size = 50
     delta_noise = 1
     data_set = "data/data5features_0to20_50k"
     device = torch.device(dev)
-    learning_rate = 5e-3
+    learning_rate = 1e-1
     betas_adam = (0.9, 0.999)
     data_set_size = 10000
+    model = networks.Net4().to(device)
 
     data = pd.read_csv(data_set)
 
@@ -82,7 +82,6 @@ def main():
     test_X = torch.tensor(test_X, dtype=torch.float32).to(device)
     test_y = torch.tensor(test_y, dtype=torch.float32).reshape(-1, 1).to(device)
 
-    model = networks.Net2().to(device)
     model.apply(init_normal)
 
     loss_fn = nn.MSELoss()
@@ -101,7 +100,7 @@ def main():
         "second_moment": []
     }
 
-    weight_cut = int(n_epochs / 6)
+    weight_cut = int(n_epochs / 9)
 
     for epoch in range(n_epochs):
         model.train()
@@ -157,9 +156,9 @@ def main():
     print("Best test error: %.2f" % best_mse)
 
     plt.rcParams.update({'font.size': 15})
-    fig, axs = plt.subplots(3, 3, figsize=(24, 16))
+    fig, axs = plt.subplots(4, 3, figsize=(24, 20))
     fig.set_layout_engine()
-    fig.suptitle(f"Network training stats. Architecture = Net2,  epochs = {n_epochs}, "
+    fig.suptitle(f"Network training stats. Architecture = {type(model).__name__},  epochs = {n_epochs}, "
                  f"batch size = {minibatch_size}, \n delta_noise = {delta_noise}, data set size = {data_set_size / 1000}k, "
                  f"learning rate = {learning_rate}, betas = {betas_adam}")
     fig.tight_layout(pad=3.5)
@@ -184,16 +183,15 @@ def main():
     # Plot weight distribution per layer
     flattened_axs = [item for row in axs[1:] for item in row]
 
-    alpha_lst = [0.9, 0.5, 0.4, 0.7, 0.8, 0.9]
     for (subplt, dct, ep) in zip(flattened_axs, weights_per_layer_epoch, epoch_saved):
 
-        for (name, a) in zip(dct.keys(), alpha_lst):
-            subplt.hist(dct[name], histtype="bar", bins=25, label=name, alpha=a)
+        for name in dct.keys():
+            subplt.hist(dct[name], histtype="bar", bins=25, label=name, alpha=0.5)
         subplt.set_title(f"Epoch {ep}")
         subplt.legend()
 
     fig.text(0.5, 0.02, "Weight value", ha="center", va="center")
-    fig.text(0.02, 0.3, "Number of occurrences", ha="center", va="center", rotation="vertical")
+    fig.text(0.02, 0.34, "Number of occurrences", ha="center", va="center", rotation="vertical")
 
     plt.show()
 
