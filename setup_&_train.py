@@ -48,18 +48,27 @@ def main():
 
     # dev = "cuda" or dev = "cpu"
     dev = "cpu"
-    n_epochs = 270
+    device = torch.device(dev)
+
+    n_epochs = 900
     minibatch_size = 50
+
+    # Data set settings
     delta_noise = 1
     data_set = "data/data5features_0to20_50k"
-    device = torch.device(dev)
+    data_set_size = 10000
+
+    # Adam parameters
     learning_rate = 1e-1
     betas_adam = (0.9, 0.999)
-    data_set_size = 10000
-    model = networks.Net4().to(device)
+
+    # model
+    model = networks.Net6().to(device)
+
+    ylim = False
+    ylim_train_curve = 0.1
 
     data = pd.read_csv(data_set)
-
     X = np.array(data.drop("val", axis=1))
     y = np.array(data["val"])
 
@@ -168,6 +177,9 @@ def main():
     axs[0][0].plot(history["train_loss"], label="train_loss")
     axs[0][0].set_ylabel("MSE")
     axs[0][0].set_xlabel("Epoch")
+
+    if ylim:
+        axs[0][0].set_ylim([0, ylim_train_curve])
     axs[0][0].legend()
 
     axs[0][1].plot(history["first_moment"], color="red")

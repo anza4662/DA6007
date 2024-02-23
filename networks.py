@@ -11,32 +11,27 @@ import torch.nn as nn
 # Weight distribution                                   DONE
 # Adam parameters                                       DONE
 
-# Questions:
-# Why does adam have 18 different states?
-# Should batch norm. have learnable parameters? And why before ReLu?
-# Variance for initialization?
-
 #                     Net1
 #
 #                      x
-#      linear(5,20)--  |
-#           |      linear(5, 10)
-#           |      batch norm
-#           |         relu
-#           |      linear(10,20)
-#           |      batch norm
-#           -------> + |
+#                      | -------------linear(5,20)---
+#                  linear(5, 10)                    |
+#                   batch norm                      |
+#                     relu                          |
+#                  linear(10,20)                    |
+#                   batch norm                      |
+#                      | + <-------------------------
 #                     relu
-#       linear(20,5)-- |
-#           |      linear(20,10)
-#           |      batch norm
-#           |         relu
-#           |      linear(10,5)
-#           |      batch norm
-#           -------> + |
+#                      |  ------------linear(20,5)---
+#                  linear(20,10)                    |
+#                   batch norm                      |
+#                     relu                          |
+#                  linear(10,5)                     |
+#                   batch norm                      |
+#                      | + <-------------------------
 #                     relu
 #                  linear(5,2)
-#                  batch norm
+#                   batch norm
 #                     relu
 #                  linear(2,1)
 #                      |
@@ -84,30 +79,30 @@ class Net1(nn.Module):
         return z11
 
 
-#                    Net2
+#                     Net2
 #
 #                      x
 #                      |
 #                 linear(5, 10)
 #                  batch norm
 #                     relu
-#           --------   |
-#           |      linear(10,20)
-#           |      batch norm
-#           |         relu
-#           |      linear(20,10)
-#           |      batch norm
-#           -------> + |
+#                      | ----------------
+#                 linear(10,20)         |
+#                   batch norm          |
+#                     relu              |
+#                  linear(20,10)        |
+#                  batch norm           |
+#                      | + <-------------
 #                     relu
-#      linear(10,2)--  |
-#           |      linear(10,5)
-#           |      batch norm
-#           |          relu
-#           |      linear(5,2)
-#           |      batch norm
-#           -------> + |
+#                      | ------linear(10,2)--
+#                 linear(10,5)              |
+#                  batch norm               |
+#                      relu                 |
+#                 linear(5,2)               |
+#                  batch norm               |
+#                      | + <-----------------
 #                     relu
-#                  linear(2,1)
+#                 linear(2,1)
 #                      |
 #                      y
 
@@ -153,6 +148,42 @@ class Net2(nn.Module):
 
         out = self.lin6(z10)
         return out
+
+
+#                    Net3
+#
+#                      x
+#                      | ---------linear(5,20)---
+#                 linear(5, 10)                 |
+#                  batch norm                   |
+#                     relu                      |
+#                 linear(10, 20)                |
+#                  batch norm                   |
+#                      | + <--------------------
+#                     relu
+#                      | ---------linear(20,20)--
+#                 linear(20,40)                 |
+#                  batch norm                   |
+#                     relu                      |
+#                 linear(40,20)                 |
+#                  batch norm                   |
+#                      | + <---------------------
+#                     relu
+#                      | ---------linear(20,5)---
+#                 linear(20, 10)                |
+#                  batch norm                   |
+#                     relu                      |
+#                 linear(10,5)                  |
+#                  batch norm                   |
+#                      | + <---------------------
+#                     relu
+#                 linear(5,2)
+#                  batch norm
+#                     relu
+#                 linear(2,1)
+#                      |
+#                      y
+
 
 
 class Net3(nn.Module):
@@ -203,21 +234,21 @@ class Net3(nn.Module):
 #                     Net4
 #
 #                      x
-#                      | -----------|
-#                 linear(5, 10)     |
-#                  batch norm       |
-#                     relu          |
-#           --------   |            |
-#           |      linear(10,20)    |
-#           |      batch norm       |
-#           |         relu          |
-#           |      linear(20,10)    |
-#           |      batch norm       |
-#           -------> + |            |
-#                     relu          |
-#                  linear(10,5)     |
-#                  batch norm       |
-#                      | + <---------
+#                      | ----------------
+#                 linear(5, 10)         |
+#                  batch norm           |
+#                     relu              |
+#           --------   |                |
+#           |      linear(10,20)        |
+#           |      batch norm           |
+#           |         relu              |
+#           |      linear(20,10)        |
+#           |      batch norm           |
+#           -------> + |                |
+#                     relu              |
+#                  linear(10,5)         |
+#                  batch norm           |
+#                      | + <-------------
 #                     relu
 #                  linear(5,2)
 #                  batch norm
@@ -268,7 +299,55 @@ class Net4(nn.Module):
         return out
 
 
+#               Net5
+#
+#       Regular feedforward network
+#          with architecture:
+#         [5,10,20,10,5,2,1]
+#
+
+
 class Net5(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lin1 = nn.Linear(5, 10)
+        self.lin2 = nn.Linear(10, 20)
+        self.lin3 = nn.Linear(20, 10)
+        self.lin4 = nn.Linear(10, 5)
+        self.lin5 = nn.Linear(5, 2)
+        self.lin6 = nn.Linear(2, 1)
+
+        batch_learnable_params = False
+        self.bn1 = nn.BatchNorm1d(10, affine=batch_learnable_params)
+        self.bn2 = nn.BatchNorm1d(20, affine=batch_learnable_params)
+        self.bn3 = nn.BatchNorm1d(10, affine=batch_learnable_params)
+        self.bn4 = nn.BatchNorm1d(5, affine=batch_learnable_params)
+        self.bn5 = nn.BatchNorm1d(2, affine=batch_learnable_params)
+
+    def forward(self, x):
+        z1 = self.lin1(x)
+        z2 = torch.relu(self.bn1(z1))
+        z3 = self.lin2(z2)
+        z4 = torch.relu(self.bn2(z3))
+        z5 = self.lin3(z4)
+        z6 = torch.relu(self.bn3(z5))
+        z7 = self.lin4(z6)
+        z8 = torch.relu(self.bn4(z7))
+        z9 = self.lin5(z8)
+        z10 = torch.relu(self.bn5(z9))
+        out = self.lin6(z10)
+        return out
+
+
+#               Net6
+#
+#       Regular feedforward network
+#          with architecture:
+#           [5,10,5,2,1]
+#
+
+
+class Net6(nn.Module):
     def __init__(self):
         super().__init__()
         self.lin1 = nn.Linear(5, 10)
@@ -287,6 +366,50 @@ class Net5(nn.Module):
         z2 = torch.relu(self.bn1(z1))
         z3 = self.lin2(z2)
         z4 = torch.relu(self.bn2(z3))
+        z5 = self.lin3(z4)
+        z6 = torch.relu(self.bn3(z5))
+        out = self.lin4(z6)
+        return out
+
+
+#                     Net7
+#
+#                      x
+#                      |  ---------------
+#                  linear(5,10)         |
+#                   batch norm          |
+#                     relu              |
+#                  linear(10,5)         |
+#                   batch norm          |
+#                      | + <-------------
+#                     relu
+#                  linear(5,2)
+#                   batch norm
+#                     relu
+#                  linear(2,1)
+#                      |
+#                      y
+
+
+class Net7(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lin1 = nn.Linear(5, 10)
+        self.lin2 = nn.Linear(10, 5)
+
+        self.lin3 = nn.Linear(5, 2)
+        self.lin4 = nn.Linear(2, 1)
+
+        batch_learnable_params = False
+        self.bn1 = nn.BatchNorm1d(10, affine=batch_learnable_params)
+        self.bn2 = nn.BatchNorm1d(5, affine=batch_learnable_params)
+        self.bn3 = nn.BatchNorm1d(2, affine=batch_learnable_params)
+
+    def forward(self, x):
+        z1 = self.lin1(x)
+        z2 = torch.relu(self.bn1(z1))
+        z3 = self.lin2(z2)
+        z4 = torch.relu(self.bn2(z3) + x)
         z5 = self.lin3(z4)
         z6 = torch.relu(self.bn3(z5))
         out = self.lin4(z6)
