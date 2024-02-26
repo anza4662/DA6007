@@ -43,30 +43,30 @@ def add_noise(arr, delta):
 
 
 def main():
-    torch.manual_seed(0)
-    np.random.seed(0)
+    # torch.manual_seed(0)
+    # np.random.seed(0)
 
     # dev = "cuda" or dev = "cpu"
     dev = "cpu"
     device = torch.device(dev)
 
-    n_epochs = 540
-    minibatch_size = 50
+    n_epochs = 90
+    minibatch_size = 10
 
     # Data set settings
-    delta_noise = 0.9
-    data_set = "data/data5features_0to30_50k_v2"
-    data_set_size = 30000
+    delta_noise = 1
+    data_set = "data/data_v2/data5features_+-10_50k_v2"
+    data_set_size = 10000
 
     # Adam parameters
-    learning_rate = 9e-4
+    learning_rate = 1e-1
     betas_adam = (0.9, 0.999)
 
     # model
-    model = networks.Net1().to(device)
+    model = (networks.Net1().to(device))
 
     ylim = False
-    ylim_train_curve = 0.1
+    ylim_train_curve = 0.3
 
     data = pd.read_csv(data_set)
     X = np.array(data.drop("val", axis=1))
@@ -94,8 +94,10 @@ def main():
     model.apply(init_normal)
 
     loss_fn = nn.MSELoss()
+    h = len(train_X)
+
     optimizer = optim.Adam(model.parameters(), weight_decay=0, lr=learning_rate, betas=betas_adam)
-    batch_start = torch.arange(0, len(train_X), minibatch_size)
+    batch_start = torch.arange(0, h, minibatch_size)
 
     epoch_saved = []
     weights_per_layer_epoch = []
@@ -104,7 +106,7 @@ def main():
     history = {
         "val_loss": [],
         "train_loss": [],
-        "grad_norm": [],
+        # "grad_norm": [],
         "first_moment": [],
         "second_moment": []
     }
@@ -132,7 +134,7 @@ def main():
 
                 bar.set_postfix(mse=float(loss))
 
-        grad_norm = np.sqrt(sum([(torch.norm(p.grad) ** 2).tolist() for p in model.parameters()]))
+        # grad_norm = np.sqrt(sum([(torch.norm(p.grad) ** 2).tolist() for p in model.parameters()]))
 
         first_mom = np.average(
             [float(torch.norm(val["exp_avg"])) for val in optimizer.state_dict()["state"].values()]
@@ -146,7 +148,7 @@ def main():
             epoch_saved.append(epoch + 1)
 
         history["train_loss"].append(loss.item())
-        history["grad_norm"].append(grad_norm)
+        # history["grad_norm"].append(grad_norm)
         history["first_moment"].append(first_mom)
         history["second_moment"].append(second_mom)
 

@@ -10,19 +10,20 @@ import datashader as ds, colorcet
 
 
 def main():
-    df = create_data()
+    # df = create_data()
     # visualize_data(df)
-    # functionPlot()
+    functionPlot()
 
 
 def f(x):
-    return np.sin(1.9 * x) + 2 * np.cos(0.2 * x) - 2 * np.sin(1.6 * x) - np.cos(2 * x)
+    return 8 * np.sin(0.1 * x) + 6 * np.cos(0.5 * x) - 4 * np.sin(2 * x) + 2 * np.cos(x) - np.cos(0.2 * x)
 
 
 def functionPlot():
-    domain = np.linspace(0, 30, 200)
-    image = f(domain)
-    n = 0.125
+    domain = [random.uniform(-100, 100) for i in range(1000)]
+    domain.sort()
+    image = [f(x) for x in domain]
+    n = 0
 
     v = (np.var(image) / np.abs(np.max(image) - np.min(image))) * n
     noise = np.random.normal(0, v, len(image))
@@ -46,7 +47,7 @@ def visualize_data(df):
 
 def create_data():
     n = 50000
-    a, b = 0, np.power(30.0, 1 / 5)
+    a, b = 0, np.power(4, 1 / 3)
     data = []
     for i in range(n):
         x1 = random.uniform(a, b)
@@ -55,16 +56,24 @@ def create_data():
         x4 = random.uniform(a, b)
         x5 = random.uniform(a, b)
 
-        prod1 = x1 * x2 + x3
-        prod2 = x3 * x4 + x5
+        prod1 = x1 * x2
+        prod2 = x3 * x4 * x5
         prod3 = x2 * x5
-        val = np.sin(1.9 * prod1) + 2 * np.cos(0.2 * prod3) - 2 * np.sin(1.6 * prod2) - np.cos(2 * prod1)
+        prod4 = x1 * x3
 
+        # f1
+        # val = np.sin(1.9 * prod1) + 2 * np.cos(0.2 * prod3) - 2 * np.sin(1.6 * prod2) - np.cos(2 * prod4)
+
+        # f2
+        val = 8 * np.sin(0.1 * prod1) + 6 * np.cos(0.5 * prod2) - 4 * np.sin(2 * prod4) + 2 * np.cos(prod3) - np.cos(
+            0.2 * prod1)
+        print(val)
         row = [x1, x2, x3, x4, x5, val]
         data.append(row)
 
     df = pd.DataFrame(data, columns=["x1", "x2", "x3", "x4", "x5", "val"])
-    df.to_csv("data5features_0to30_50k_v2", index=False)
+    df.to_csv("data5features_+-4_50k_v2", index=False)
+    print(df.describe().transpose())
     return df
 
 
