@@ -16,6 +16,23 @@ import matplotlib.layout_engine as le
 # Some code taken from https://machinelearningmastery.com/building-a-regression-model-in-pytorch/
 
 
+def plot_results():
+    x = [1, 2, 3, 4, 5, 6, 7]
+    nets = ["Net D1", "Net D2", "Net D3", "Net D4", "Net D5", "Net D6", "Net D7"]
+    train = [22.5665225982666, 7.208937168121338, 2.188675880432129,
+             1.0314311981201172, 1.0873960256576538, 0.3718871772289276, 1.0654171705245972]
+    test = [17.65632438659668, 2.981721878051758, 2.1154253482818604,
+            1.7992955446243286, 1.8510485887527466, 1.9557398557662964, 2.0008881092071533]
+
+    plt.plot(x, train, label="Train")
+    plt.plot(x, test, label="Test")
+    plt.xticks(x, nets)
+    plt.xlabel("Network")
+    plt.ylabel("MSE")
+    plt.legend()
+    plt.show()
+
+
 def get_weights(model):
     layer_weights = {}
 
@@ -42,31 +59,69 @@ def add_noise(arr, delta):
     return arr
 
 
-def main():
-    # torch.manual_seed(0)
-    # np.random.seed(0)
+def plot_network_history(history, title, epoch_saved, weights_per_layer_epoch):
+    plt.rcParams.update({'font.size': 15})
+    fig, axs = plt.subplots(4, 3, figsize=(24, 20))
+    fig.set_layout_engine()
+    fig.suptitle(title)
+    fig.tight_layout(pad=3.5)
+
+    # Plot history
+    axs[0][0].plot(history["val_loss"], label="val_loss")
+    axs[0][0].plot(history["train_loss"], label="train_loss")
+    axs[0][0].set_ylabel("MSE")
+    axs[0][0].set_xlabel("Epoch")
+
+    axs[0][1].plot(history["first_moment"], color="red")
+    axs[0][1].set_title("First moment")
+    axs[0][1].set_ylabel("Norm")
+    axs[0][1].set_xlabel("Epoch")
+
+    axs[0][2].plot(history["second_moment"], color="magenta")
+    axs[0][2].set_title("Second moment")
+    axs[0][2].set_ylabel("Norm")
+    axs[0][2].set_xlabel("Epoch")
+
+    # Plot weight distribution per layer
+    flattened_axs = [item for row in axs[1:] for item in row]
+
+    for (subplt, dct, ep) in zip(flattened_axs, weights_per_layer_epoch, epoch_saved):
+
+        for name in dct.keys():
+            subplt.hist(dct[name], histtype="bar", bins=25, label=name, alpha=0.5)
+        subplt.set_title(f"Epoch {ep}")
+        subplt.legend()
+
+    fig.text(0.5, 0.02, "Weight value", ha="center", va="center")
+    fig.text(0.02, 0.34, "Number of occurrences", ha="center", va="center", rotation="vertical")
+
+    plt.show()
+
+
+def train():
+    torch.manual_seed(0)
+    np.random.seed(0)
 
     # dev = "cuda" or dev = "cpu"
-    dev = "cpu"
+    dev = "cuda"
     device = torch.device(dev)
 
-    n_epochs = 90
-    minibatch_size = 10
+    n_epochs = 360
+    minibatch_size = 20
 
     # Data set settings
     delta_noise = 1
-    data_set = "data/data_v2/data5features_+-10_50k_v2"
+    data_set = "data/data_v2/data5features_+-5_50k_v2"
     data_set_size = 10000
 
     # Adam parameters
-    learning_rate = 1e-1
+    learning_rate = 1e-3
     betas_adam = (0.9, 0.999)
 
     # model
-    model = (networks.Net1().to(device))
+    model = networks.NetD7().to(device)
+    print("Model: ", type(model).__name__)
 
-    ylim = False
-    ylim_train_curve = 0.3
 
     data = pd.read_csv(data_set)
     X = np.array(data.drop("val", axis=1))
@@ -79,6 +134,7 @@ def main():
     train_X, test_X, train_y, test_y = train_test_split(X, y, test_size=0.3, shuffle=True)
 
     train_y = add_noise(train_y, delta_noise)
+    test_y = add_noise(test_y, delta_noise)
 
     scaler = StandardScaler()
     scaler.fit(train_X)
@@ -155,60 +211,19 @@ def main():
         # Validation
         model.eval()
         y_pred = model(test_X)
-        val_mse = loss_fn(y_pred, test_y)
-        val_mse = float(val_mse)
-        history["val_loss"].append(val_mse)
-        if val_mse < best_mse:
-            best_mse = val_mse
-            best_weights = copy.deepcopy(model.state_dict())
+        val_loss = loss_fn(y_pred, test_y)
+        history["val_loss"].append(val_loss.item())
 
-    model.load_state_dict(best_weights)
+    print("\n Best test error: ", min(history["val_loss"]))
+    print("Best train error: ", min(history["train_loss"]))
 
-    print("Best test error: %.2f" % best_mse)
+    title = (f"Network training stats. Architecture = {type(model).__name__},  epochs = {n_epochs}, "
+             f"batch size = {minibatch_size}, \n delta_noise = {delta_noise}, data set size = {data_set_size / 1000}k, "
+             f"learning rate = {learning_rate}, betas = {betas_adam}")
 
-    plt.rcParams.update({'font.size': 15})
-    fig, axs = plt.subplots(4, 3, figsize=(24, 20))
-    fig.set_layout_engine()
-    fig.suptitle(f"Network training stats. Architecture = {type(model).__name__},  epochs = {n_epochs}, "
-                 f"batch size = {minibatch_size}, \n delta_noise = {delta_noise}, data set size = {data_set_size / 1000}k, "
-                 f"learning rate = {learning_rate}, betas = {betas_adam}")
-    fig.tight_layout(pad=3.5)
-
-    # Plot history
-    axs[0][0].plot(history["val_loss"], label="val_loss")
-    axs[0][0].plot(history["train_loss"], label="train_loss")
-    axs[0][0].set_ylabel("MSE")
-    axs[0][0].set_xlabel("Epoch")
-
-    if ylim:
-        axs[0][0].set_ylim([0, ylim_train_curve])
-    axs[0][0].legend()
-
-    axs[0][1].plot(history["first_moment"], color="red")
-    axs[0][1].set_title("First moment")
-    axs[0][1].set_ylabel("Norm")
-    axs[0][1].set_xlabel("Epoch")
-
-    axs[0][2].plot(history["second_moment"], color="magenta")
-    axs[0][2].set_title("Second moment")
-    axs[0][2].set_ylabel("Norm")
-    axs[0][2].set_xlabel("Epoch")
-
-    # Plot weight distribution per layer
-    flattened_axs = [item for row in axs[1:] for item in row]
-
-    for (subplt, dct, ep) in zip(flattened_axs, weights_per_layer_epoch, epoch_saved):
-
-        for name in dct.keys():
-            subplt.hist(dct[name], histtype="bar", bins=25, label=name, alpha=0.5)
-        subplt.set_title(f"Epoch {ep}")
-        subplt.legend()
-
-    fig.text(0.5, 0.02, "Weight value", ha="center", va="center")
-    fig.text(0.02, 0.34, "Number of occurrences", ha="center", va="center", rotation="vertical")
-
-    plt.show()
+    plot_network_history(history, title, epoch_saved, weights_per_layer_epoch)
 
 
 if __name__ == '__main__':
-    main()
+    # train()
+    plot_results()
