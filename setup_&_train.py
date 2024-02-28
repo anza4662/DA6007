@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import tqdm
 import copy
+
 import networks
 
 import pandas as pd
@@ -10,26 +11,76 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-import matplotlib.layout_engine as le
-
 
 # Some code taken from https://machinelearningmastery.com/building-a-regression-model-in-pytorch/
 
 
-def plot_results():
-    x = [1, 2, 3, 4, 5, 6, 7]
-    nets = ["Net D1", "Net D2", "Net D3", "Net D4", "Net D5", "Net D6", "Net D7"]
-    train = [22.5665225982666, 7.208937168121338, 2.188675880432129,
-             1.0314311981201172, 1.0873960256576538, 0.3718871772289276, 1.0654171705245972]
-    test = [17.65632438659668, 2.981721878051758, 2.1154253482818604,
-            1.7992955446243286, 1.8510485887527466, 1.9557398557662964, 2.0008881092071533]
+def plot_results(results, model_names):
+    x = [i for i in range(1, len(model_names) + 1)]
+    train, test = [list(t) for t in zip(*results)]
 
     plt.plot(x, train, label="Train")
     plt.plot(x, test, label="Test")
-    plt.xticks(x, nets)
+    plt.xticks(x, model_names)
     plt.xlabel("Network")
     plt.ylabel("MSE")
     plt.legend()
+    plt.show()
+
+
+def plot_2D_results_netsize(train, test, model_names):
+    nets = [i for i in range(1, len(model_names) + 1)]
+    epochs = [i for i in range(1, len(train[0]) + 1)]
+
+    E, N = np.meshgrid(epochs, nets)
+
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))
+    fig.tight_layout(pad=5)
+
+    contf1_ = ax[0].contourf(E, N, train, levels=100)
+    ax[0].set_title("Training Loss")
+    ax[0].set_yticks(nets, model_names)
+    ax[0].set_xlabel("Epoch")
+    ax[0].set_ylabel("Network")
+
+    contf2_ = ax[1].contourf(E, N, test, levels=100)
+    ax[1].set_title("Test Loss")
+    ax[1].set_yticks(nets, model_names)
+    ax[1].set_xlabel("Epoch")
+    ax[1].set_ylabel("Network")
+
+    fig.colorbar(contf1_, ax=ax[0])
+    fig.colorbar(contf2_, ax=ax[1])
+
+    fig.suptitle(f"Train and test errors for increasing network sizes.")
+    plt.show()
+
+
+def plot_2D_results_dataset(train, test, k_lst, model_name):
+    nr_of_k_s = [i for i in range(1, len(k_lst) + 1)]
+    epochs = [i for i in range(1, len(train[0]) + 1)]
+
+    E, N = np.meshgrid(epochs, nr_of_k_s)
+
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))
+    fig.tight_layout(pad=5)
+
+    contf1_ = ax[0].contourf(E, N, train, levels=100)
+    ax[0].set_title("Training Loss")
+    ax[0].set_yticks(nr_of_k_s, k_lst)
+    ax[0].set_xlabel("Epoch")
+    ax[0].set_ylabel("k factor")
+
+    contf2_ = ax[1].contourf(E, N, test, levels=100)
+    ax[1].set_title("Test Loss")
+    ax[1].set_yticks(nr_of_k_s, k_lst)
+    ax[1].set_xlabel("Epoch")
+    ax[1].set_ylabel("k factor")
+
+    fig.colorbar(contf1_, ax=ax[0])
+    fig.colorbar(contf2_, ax=ax[1])
+
+    fig.suptitle(f"Train and test errors for different k factors of non-linearity using model {model_name}.")
     plt.show()
 
 
@@ -71,6 +122,8 @@ def plot_network_history(history, title, epoch_saved, weights_per_layer_epoch):
     axs[0][0].plot(history["train_loss"], label="train_loss")
     axs[0][0].set_ylabel("MSE")
     axs[0][0].set_xlabel("Epoch")
+    axs[0][0].set_yscale("log")
+    axs[0][0].legend()
 
     axs[0][1].plot(history["first_moment"], color="red")
     axs[0][1].set_title("First moment")
@@ -93,36 +146,12 @@ def plot_network_history(history, title, epoch_saved, weights_per_layer_epoch):
         subplt.legend()
 
     fig.text(0.5, 0.02, "Weight value", ha="center", va="center")
-    fig.text(0.02, 0.34, "Number of occurrences", ha="center", va="center", rotation="vertical")
+    fig.text(0.015, 0.35, "Number of occurrences", ha="center", va="center", rotation="vertical")
 
     plt.show()
 
 
-def train():
-    torch.manual_seed(0)
-    np.random.seed(0)
-
-    # dev = "cuda" or dev = "cpu"
-    dev = "cuda"
-    device = torch.device(dev)
-
-    n_epochs = 360
-    minibatch_size = 20
-
-    # Data set settings
-    delta_noise = 1
-    data_set = "data/data_v2/data5features_+-5_50k_v2"
-    data_set_size = 10000
-
-    # Adam parameters
-    learning_rate = 1e-3
-    betas_adam = (0.9, 0.999)
-
-    # model
-    model = networks.NetD7().to(device)
-    print("Model: ", type(model).__name__)
-
-
+def get_data(data_set, data_set_size, delta_noise, device):
     data = pd.read_csv(data_set)
     X = np.array(data.drop("val", axis=1))
     y = np.array(data["val"])
@@ -147,18 +176,25 @@ def train():
     test_X = torch.tensor(test_X, dtype=torch.float32).to(device)
     test_y = torch.tensor(test_y, dtype=torch.float32).reshape(-1, 1).to(device)
 
+    return train_X, test_X, train_y, test_y
+
+
+def train_one(model, data_set, data_set_size, delta_noise,
+              device, minibatch_size, learning_rate, betas_adam,
+              n_epochs, plot_history):
+    print("Training model: ", type(model).__name__)
+
+    train_X, test_X, train_y, test_y = get_data(data_set, data_set_size, delta_noise, device)
+
     model.apply(init_normal)
 
     loss_fn = nn.MSELoss()
-    h = len(train_X)
 
     optimizer = optim.Adam(model.parameters(), weight_decay=0, lr=learning_rate, betas=betas_adam)
-    batch_start = torch.arange(0, h, minibatch_size)
+    batch_start = torch.arange(0, len(train_X), minibatch_size)
 
     epoch_saved = []
     weights_per_layer_epoch = []
-    best_mse = np.inf
-    best_weights = None
     history = {
         "val_loss": [],
         "train_loss": [],
@@ -214,16 +250,88 @@ def train():
         val_loss = loss_fn(y_pred, test_y)
         history["val_loss"].append(val_loss.item())
 
-    print("\n Best test error: ", min(history["val_loss"]))
-    print("Best train error: ", min(history["train_loss"]))
+    if plot_history:
+        title = (f"Network training stats. Architecture = {type(model).__name__},  epochs = {n_epochs}, "
+                 f"batch size = {minibatch_size}, \n delta_noise = {delta_noise}, data set size = {data_set_size / 1000}k, "
+                 f"learning rate = {learning_rate}, betas = {betas_adam}")
 
-    title = (f"Network training stats. Architecture = {type(model).__name__},  epochs = {n_epochs}, "
-             f"batch size = {minibatch_size}, \n delta_noise = {delta_noise}, data set size = {data_set_size / 1000}k, "
-             f"learning rate = {learning_rate}, betas = {betas_adam}")
+        plot_network_history(history, title, epoch_saved, weights_per_layer_epoch)
 
-    plot_network_history(history, title, epoch_saved, weights_per_layer_epoch)
+    return history
+
+
+def train_multiple(data_set, data_set_size, delta_noise,
+                   device, minibatch_size, learning_rate, betas_adam,
+                   n_epochs):
+    models = [networks.NetD1(), networks.NetD2(), networks.NetD3(), networks.NetD4(),
+              networks.NetD5(), networks.NetD6(), networks.NetD7()]
+
+    results_train = []
+    results_test = []
+    model_names = []
+
+    for model in models:
+        model.to(device)
+        history = train_one(model, data_set, data_set_size, delta_noise,
+                            device, minibatch_size, learning_rate, betas_adam,
+                            n_epochs, False)
+        results_train.append(history["train_loss"])
+        results_test.append(history["val_loss"])
+
+        model_names.append(type(model).__name__)
+
+    plot_2D_results_netsize(results_train, results_test, model_names)
+
+
+def test_data(model, data_set_size, delta_noise, device, minibatch_size, learning_rate, betas_adam, n_epochs):
+    results_train = []
+    results_test = []
+    k_lst = [1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5]
+
+    for data_k in k_lst:
+        data_set = f"data/data_v2/data5var_k={data_k}_20k"
+        print("Training on dataset: ", data_set)
+        history = train_one(model, data_set, data_set_size, delta_noise,
+                            device, minibatch_size, learning_rate, betas_adam,
+                            n_epochs, False)
+        results_train.append(history["train_loss"])
+        results_test.append(history["val_loss"])
+
+    plot_2D_results_dataset(results_train, results_test, k_lst, type(model).__name__)
+
+
+def main():
+    torch.manual_seed(1)
+    np.random.seed(1)
+
+    # dev = "cuda" or dev = "cpu"
+    dev = "cuda"
+    device = torch.device(dev)
+
+    n_epochs = 180
+    minibatch_size = 10
+
+    # Data set settings
+    delta_noise = 1
+    data_set = "data/data_v2/data5var_k=1.1_20k"
+    data_set_size = 10000
+
+    # Adam parameters
+    learning_rate = 1e-3
+    betas_adam = (0.9, 0.999)
+    model = networks.NetD5().to(device)
+
+    # test_data(model, data_set_size, delta_noise, device,
+    #          minibatch_size, learning_rate, betas_adam, n_epochs)
+
+    # train_one(model, data_set, data_set_size, delta_noise,
+    #          device, minibatch_size, learning_rate, betas_adam,
+    #          n_epochs, True)
+
+    train_multiple(data_set, data_set_size, delta_noise,
+                   device, minibatch_size, learning_rate, betas_adam,
+                   n_epochs)
 
 
 if __name__ == '__main__':
-    # train()
-    plot_results()
+    main()

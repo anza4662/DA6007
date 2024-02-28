@@ -10,7 +10,8 @@ import datashader as ds, colorcet
 
 
 def main():
-    df = create_data()
+    # df = create_data()
+    create_dataV2()
     # visualize_data(df)
     # functionPlot()
 
@@ -47,7 +48,7 @@ def visualize_data(df):
 
 def create_data():
     n = 50000
-    a, b = -np.power(2, 1 / 2), np.power(2, 1 / 2)
+    a, b = -np.power(4, 1 / 2), np.power(4, 1 / 2)
     data = []
     for i in range(n):
         x1 = random.uniform(a, b)
@@ -72,9 +73,38 @@ def create_data():
         data.append(row)
 
     df = pd.DataFrame(data, columns=["x1", "x2", "x3", "x4", "x5", "val"])
-    df.to_csv("data5features_+-2_50k_v2", index=False)
+    df.to_csv("data5features_+-4_50k_v2", index=False)
     print(df.describe().transpose())
     return df
+
+
+def create_dataV2():
+    n = 20000
+    a, b = -10, 10
+    k_range = np.linspace(1.05, 1.5, 10)
+    k_range = [np.round(k, 4) for k in k_range]
+    print(k_range)
+
+    for k in k_range:
+        data = []
+        for i in range(n):
+            x1 = random.uniform(a, b)
+            x2 = random.uniform(a, b)
+            x3 = random.uniform(a, b)
+            x4 = random.uniform(a, b)
+            x5 = random.uniform(a, b)
+
+            prod1 = x1
+            prod2 = x3 * x4
+            prod3 = x2 * x5
+
+            val = k * np.sin((1 - k) * prod1) + k * np.cos((1 - k) * prod2) - k * np.sin((1 - k) * prod3)
+
+            row = [x1, x2, x3, x4, x5, val]
+            data.append(row)
+
+        df = pd.DataFrame(data, columns=["x1", "x2", "x3", "x4", "x5", "val"])
+        df.to_csv(f"data5var_k={k}_20k", index=False)
 
 
 if __name__ == '__main__':
