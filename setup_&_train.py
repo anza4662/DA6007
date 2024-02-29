@@ -321,33 +321,33 @@ def main():
     # np.random.seed(0)
 
     # dev = "cuda" or dev = "cpu"
-    dev = "cuda"
+    dev = "cpu"
     device = torch.device(dev)
 
-    n_epochs = 180
+    n_epochs = 540
     minibatch_size = 10
 
     # Data set settings
     delta_noise = 1
     data_set = "data/data_v2/data5var_k=3.204_20k"
-    data_set_size = 10000
+    data_set_size = 5000
 
     # Adam parameters
     learning_rate = 1e-3
     betas_adam = (0.9, 0.999)
     # model = networks.NetD3().to(device)
-    model = networks_width.NetW1().to(device)
+    model = networks_width.NetW16().to(device)
 
     # test_data(model, data_set_size, delta_noise, device,
     #          minibatch_size, learning_rate, betas_adam, n_epochs)
 
-    # train_one(model, data_set, data_set_size, delta_noise,
-    #          device, minibatch_size, learning_rate, betas_adam,
-    #          n_epochs, True)
+    train_one(model, data_set, data_set_size, delta_noise,
+              device, minibatch_size, learning_rate, betas_adam,
+              n_epochs, True)
 
-    train_multiple(data_set, data_set_size, delta_noise,
-                   device, minibatch_size, learning_rate, betas_adam,
-                   n_epochs)
+    # train_multiple(data_set, data_set_size, delta_noise,
+    #               device, minibatch_size, learning_rate, betas_adam,
+    #               n_epochs)
 
 
 if __name__ == '__main__':
