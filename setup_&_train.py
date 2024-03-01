@@ -2,9 +2,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import tqdm
-import copy
 
-import networks, networks_width
+import networks_width
 
 import pandas as pd
 import numpy as np
@@ -12,10 +11,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
-import networks_width
-
 
 # Some code taken from https://machinelearningmastery.com/building-a-regression-model-in-pytorch/
+
+device = torch.device("cpu")
 
 
 def plot_results(results, model_names):
@@ -35,18 +34,21 @@ def plot_2D_results_netsize(train, test, model_names, title):
     nets = [i for i in range(1, len(model_names) + 1)]
     epochs = [i for i in range(1, len(train[0]) + 1)]
 
+    v_min = 0
+    v_max = 15
+
     E, N = np.meshgrid(epochs, nets)
 
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12, 7))
     fig.tight_layout(pad=5)
 
-    contf1_ = ax[0].contourf(E, N, train, levels=100)
+    contf1_ = ax[0].contourf(E, N, train, levels=400, vmin=v_min, vmax=v_max)
     ax[0].set_title("Training Loss")
     ax[0].set_yticks(nets, model_names)
     ax[0].set_xlabel("Epoch")
     ax[0].set_ylabel("Network")
 
-    contf2_ = ax[1].contourf(E, N, test, levels=100)
+    contf2_ = ax[1].contourf(E, N, test, levels=400, vmin=v_min, vmax=v_max)
     ax[1].set_title("Test Loss")
     ax[1].set_yticks(nets, model_names)
     ax[1].set_xlabel("Epoch")
@@ -64,18 +66,21 @@ def plot_2D_results_dataset(train, test, k_lst, title):
     nr_of_k_s = [i for i in range(1, len(k_lst) + 1)]
     epochs = [i for i in range(1, len(train[0]) + 1)]
 
+    v_min = 0
+    v_max = 15
+
     E, N = np.meshgrid(epochs, nr_of_k_s)
 
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12, 7))
     fig.tight_layout(pad=4)
 
-    contf1_ = ax[0].contourf(E, N, train, levels=100)
+    contf1_ = ax[0].contourf(E, N, train, levels=400, vmin=v_min, vmax=v_max)
     ax[0].set_title("Training Loss")
     ax[0].set_yticks(nr_of_k_s, k_lst)
     ax[0].set_xlabel("Epoch")
     ax[0].set_ylabel("k factor")
 
-    contf2_ = ax[1].contourf(E, N, test, levels=100)
+    contf2_ = ax[1].contourf(E, N, test, levels=400, vmin=v_min, vmax=v_max)
     ax[1].set_title("Test Loss")
     ax[1].set_yticks(nr_of_k_s, k_lst)
     ax[1].set_xlabel("Epoch")
@@ -155,7 +160,7 @@ def plot_network_history(history, title, epoch_saved, weights_per_layer_epoch):
     plt.show()
 
 
-def get_data(data_set, data_set_size, delta_noise, device):
+def get_data(data_set, data_set_size, delta_noise):
     data = pd.read_csv(data_set)
     X = np.array(data.drop("val", axis=1))
     y = np.array(data["val"])
@@ -184,18 +189,13 @@ def get_data(data_set, data_set_size, delta_noise, device):
 
 
 def train_one(model, data_set, data_set_size, delta_noise,
-              device, minibatch_size, learning_rate, betas_adam,
+              minibatch_size, learning_rate, betas_adam,
               n_epochs, plot_history):
-    print("Training model: ", type(model).__name__)
 
-    train_X, test_X, train_y, test_y = get_data(data_set, data_set_size, delta_noise, device)
-
+    train_x, test_x, train_y, test_y = get_data(data_set, data_set_size, delta_noise)
     model.apply(init_normal)
-
     loss_fn = nn.MSELoss()
-
     optimizer = optim.Adam(model.parameters(), weight_decay=0, lr=learning_rate, betas=betas_adam)
-    batch_start = torch.arange(0, len(train_X), minibatch_size)
 
     epoch_saved = []
     weights_per_layer_epoch = []
@@ -209,50 +209,48 @@ def train_one(model, data_set, data_set_size, delta_noise,
 
     weight_cut = int(n_epochs / 9)
 
-    for epoch in range(n_epochs):
-        model.train()
-        with tqdm.tqdm(batch_start, unit=" batch", mininterval=0, disable=False) as bar:
-            bar.set_description(f"Epoch {epoch}")
+    batch_start = torch.arange(0, len(train_x), minibatch_size)
+    batches = []
+    for start in batch_start:
+        x_batch = train_x[start:start + minibatch_size].to(device)
+        y_batch = train_y[start:start + minibatch_size].to(device)
+        batches.append((x_batch, y_batch))
 
-            for start in bar:
-                X_batch = train_X[start:start + minibatch_size].to(device)
-                y_batch = train_y[start:start + minibatch_size].to(device)
+    with tqdm.tqdm(range(1, n_epochs + 1), ncols=150, colour="green") as bar:
+        bar.set_description(f"Training model {type(model).__name__}")
 
-                y_pred = model.forward(X_batch)
+        for epoch in bar:
+            model.train()
 
-                loss = loss_fn(y_pred, y_batch)
-
+            for (batch_x, batch_y) in batches:
+                pred_y = model.forward(batch_x)
+                loss = loss_fn(pred_y, batch_y)
                 optimizer.zero_grad()
-
                 loss.backward()
-
                 optimizer.step()
 
-                bar.set_postfix(mse=float(loss))
+            first_mom = np.average(
+                [float(torch.norm(val["exp_avg"])) for val in optimizer.state_dict()["state"].values()]
+            )
+            second_mom = np.average(
+                [float(torch.norm(val["exp_avg_sq"])) for val in optimizer.state_dict()["state"].values()]
+            )
 
-        # grad_norm = np.sqrt(sum([(torch.norm(p.grad) ** 2).tolist() for p in model.parameters()]))
+            if (epoch) % weight_cut == 0:
+                weights_per_layer_epoch.append(get_weights(model))
+                epoch_saved.append(epoch)
 
-        first_mom = np.average(
-            [float(torch.norm(val["exp_avg"])) for val in optimizer.state_dict()["state"].values()]
-        )
-        second_mom = np.average(
-            [float(torch.norm(val["exp_avg_sq"])) for val in optimizer.state_dict()["state"].values()]
-        )
+            history["train_loss"].append(loss.item())
+            history["first_moment"].append(first_mom)
+            history["second_moment"].append(second_mom)
 
-        if (epoch + 1) % weight_cut == 0:
-            weights_per_layer_epoch.append(get_weights(model))
-            epoch_saved.append(epoch + 1)
+            # Validation
+            model.eval()
+            y_pred = model(test_x)
+            val_loss = loss_fn(y_pred, test_y)
+            history["val_loss"].append(val_loss.item())
 
-        history["train_loss"].append(loss.item())
-        # history["grad_norm"].append(grad_norm)
-        history["first_moment"].append(first_mom)
-        history["second_moment"].append(second_mom)
-
-        # Validation
-        model.eval()
-        y_pred = model(test_X)
-        val_loss = loss_fn(y_pred, test_y)
-        history["val_loss"].append(val_loss.item())
+            bar.set_postfix({"Train": loss.item(), "Test": val_loss.item()})
 
     if plot_history:
         title = (f"Network training stats. Architecture = {type(model).__name__},  epochs = {n_epochs}, "
@@ -265,7 +263,7 @@ def train_one(model, data_set, data_set_size, delta_noise,
 
 
 def train_multiple(data_set, data_set_size, delta_noise,
-                   device, minibatch_size, learning_rate, betas_adam,
+                   minibatch_size, learning_rate, betas_adam,
                    n_epochs):
     # models = [networks.NetD1(), networks.NetD2(), networks.NetD3(), networks.NetD4(),
     #          networks.NetD5(), networks.NetD6(), networks.NetD7()]
@@ -282,7 +280,7 @@ def train_multiple(data_set, data_set_size, delta_noise,
     for model in models:
         model.to(device)
         history = train_one(model, data_set, data_set_size, delta_noise,
-                            device, minibatch_size, learning_rate, betas_adam,
+                            minibatch_size, learning_rate, betas_adam,
                             n_epochs, False)
         results_train.append(history["train_loss"])
         results_test.append(history["val_loss"])
@@ -304,7 +302,7 @@ def test_data(model, data_set_size, delta_noise, device, minibatch_size, learnin
         data_set = f"data/data_v2/data5var_k={data_k}_20k"
         print("Training on dataset: ", data_set)
         history = train_one(model, data_set, data_set_size, delta_noise,
-                            device, minibatch_size, learning_rate, betas_adam,
+                            minibatch_size, learning_rate, betas_adam,
                             n_epochs, False)
         results_train.append(history["train_loss"])
         results_test.append(history["val_loss"])
@@ -320,12 +318,8 @@ def main():
     # torch.manual_seed(0)
     # np.random.seed(0)
 
-    # dev = "cuda" or dev = "cpu"
-    dev = "cpu"
-    device = torch.device(dev)
-
     n_epochs = 540
-    minibatch_size = 10
+    minibatch_size = 5
 
     # Data set settings
     delta_noise = 1
@@ -336,13 +330,13 @@ def main():
     learning_rate = 1e-3
     betas_adam = (0.9, 0.999)
     # model = networks.NetD3().to(device)
-    model = networks_width.NetW16().to(device)
+    model = networks_width.NetW12().to(device)
 
     # test_data(model, data_set_size, delta_noise, device,
     #          minibatch_size, learning_rate, betas_adam, n_epochs)
 
     train_one(model, data_set, data_set_size, delta_noise,
-              device, minibatch_size, learning_rate, betas_adam,
+              minibatch_size, learning_rate, betas_adam,
               n_epochs, True)
 
     # train_multiple(data_set, data_set_size, delta_noise,
