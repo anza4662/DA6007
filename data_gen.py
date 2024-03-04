@@ -63,7 +63,7 @@ def create_data():
         prod3 = x2 * x5
         prod4 = x1 * x3
 
-        val = x1 ** 2 + (4 *  x2 * x3) ** 2 - (x4 * x5)
+        val = x1 ** 2 + (4 * x2 * x3) ** 2 - (x4 * x5)
 
         row = [x1, x2, x3, x4, x5, val]
         data.append(row)
@@ -92,7 +92,6 @@ def create_dataV2():
             prod1 = x1
             prod2 = x3 * x4
             prod3 = x2 * x5
-
 
             val = k * (np.sin((2 - k) * prod1) + np.cos((2 - k) * prod2) - np.sin((2 - k) * prod3))
 
