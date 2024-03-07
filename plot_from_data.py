@@ -2,25 +2,25 @@ import numpy as np
 import pickle as pk
 
 import matplotlib.pyplot as plt
-
+import matplotlib.tri as mtri
+from scipy.interpolate import griddata
 
 def get_data_from_file(filename):
-    with open(filename) as file:
+    with open(filename, "rb") as file:
         history = pk.load(file)
         print("Succesfully read data.")
     return history
 
 
 def plot_training_curve_and_moments(history):
-    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-    fig.set_suptitle(history["title"])
+    fig, axs = plt.subplots(1, 3, figsize=(20, 7))
+    fig.suptitle(history["title"])
     fig.tight_layout(pad=3.5)
 
     axs[0].plot(history["val_loss"], label="val_loss")
     axs[0].plot(history["train_loss"], label="train_loss")
     axs[0].set_ylabel("MSE")
     axs[0].grid()
-    axs[0].set_ylim(0, 10)
     axs[0].set_xlabel("Epoch")
     axs[0].legend()
 
@@ -38,7 +38,7 @@ def plot_training_curve_and_moments(history):
 
 def plot_weight_distributions(history):
     fig, axs = plt.subplots(3, 3, figsize=(24, 15))
-    fig.set_suptitle(history["title"])
+    fig.suptitle(history["title"])
     fig.tight_layout(pad=3.5)
 
     flattened_axs = [item for row in axs for item in row]
@@ -57,31 +57,35 @@ def plot_weight_distributions(history):
 
 
 def plot_diff_curve(history):
-    fig, axs = plt.subplots(3, 3, figsize=(24, 15))
-    fig.set_suptitle(history["title"])
-    fig.tight_layout(pad=3.5)
+    fig = plt.figure(figsize=(24, 15))
+    fig.suptitle(history["title"])
+    x1 = np.array(history["x1"])
+    x2 = np.array(history["x2"])
 
-    v_min = 0
-    v_max = 10
+    xi = np.linspace(x1.min(), x1.max(), 100)
+    yi = np.linspace(x2.min(), x2.max(), 100)
+    xig, yig = np.meshgrid(xi, yi)
 
-    x1, x2 = np.meshgrid(history["x1"], history["x2"])
-
-    flattened_axs = [item for row in axs for item in row]
-
-    for (subplt, y, ep) in zip(flattened_axs, history["diff_func_per_epoch"], history["epoch_saved"]):
-
-        contf_ = subplt.contourf(x1, x2, y, levels=400, vmin=v_min, vmax=v_max)
-        subplt.set_xlabel("x1")
-        subplt.set_ylabel("x2")
+    for (indx, z, ep) in zip(range(1, 10), np.array(history["diff_func_per_epoch"]), history["epoch_saved"]):
+        subplt = fig.add_subplot(3, 3, indx)
+        zi = griddata((x1, x2), z, (xi[None, :], yi[:, None]), method='cubic')
+        surf = subplt.contourf(xig, yig, zi, 100, cmap=plt.cm.CMRmap)
         subplt.set_title(f"Epoch {ep}")
-        fig.colorbar(contf_, ax=subplt)
+        fig.colorbar(surf, location="left", ax=subplt)
 
+    fig.tight_layout(pad=1.5)
     plt.show()
 
 
 def main():
-    print("Plotting...")
     plt.rcParams.update({'font.size': 15})
+    history = get_data_from_file("figures/week 10/medium/test6/history_data_7.txt")
+
+    print("Plotting...")
+
+    plot_diff_curve(history)
+    plot_training_curve_and_moments(history)
+    plot_weight_distributions(history)
 
     print("DONE.")
 
