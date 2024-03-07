@@ -9,13 +9,6 @@ from matplotlib import cm
 import datashader as ds, colorcet
 
 
-def main():
-    # create_data()
-    create_dataV2()
-    # visualize_data(df)
-    # functionPlot()
-
-
 def f(x):
     return 8 * np.sin(0.1 * x) + 6 * np.cos(0.5 * x) - 4 * np.sin(2 * x) + 2 * np.cos(x) - np.cos(0.2 * x)
 
@@ -47,10 +40,11 @@ def visualize_data(df):
 # If we want val to be in range 0 to n we take a to be zero and b to be the fifth root of n.
 
 def create_data():
-    n = 20000
-    k = 2
-    a, b = 0, 2
+    n = 50000
+    a, b = -2, 2
+    k = 2.806
     data = []
+
     for i in range(n):
         x1 = random.uniform(a, b)
         x2 = random.uniform(a, b)
@@ -58,21 +52,21 @@ def create_data():
         x4 = random.uniform(a, b)
         x5 = random.uniform(a, b)
 
-        prod1 = x1 * x2
+        prod1 = x1
         prod2 = x3 * x4
         prod3 = x2 * x5
-        prod4 = x1 * x3
 
-        val = x1 ** 2 + (4 * x2 * x3) ** 2 - (x4 * x5)
+        val = k * (np.sin((2 - k) * prod1) + np.cos((2 - k) * prod2) - np.sin((2 - k) * prod3))
 
         row = [x1, x2, x3, x4, x5, val]
         data.append(row)
 
     df = pd.DataFrame(data, columns=["x1", "x2", "x3", "x4", "x5", "val"])
-    df.to_csv("data5features_test_20k", index=False)
+    df.to_csv(f"data5var_k={k}_50k", index=False)
+    print(df.describe().transpose())
 
 
-def create_dataV2():
+def create_data_multiple_k():
     n = 10000
     a, b = -2, 2
 
@@ -101,6 +95,10 @@ def create_dataV2():
         df = pd.DataFrame(data, columns=["x1", "x2", "x3", "x4", "x5", "val"])
         df.to_csv(f"data5var_k={k}_20k", index=False)
         print(df.describe().transpose())
+
+
+def main():
+    create_data()
 
 
 if __name__ == '__main__':
