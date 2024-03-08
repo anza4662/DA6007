@@ -4,9 +4,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.ticker import LinearLocator
-from matplotlib import cm
-import datashader as ds, colorcet
 
 
 def f(x):

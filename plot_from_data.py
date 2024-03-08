@@ -79,7 +79,7 @@ def plot_diff_curve(history):
 
 def main():
     plt.rcParams.update({'font.size': 15})
-    history = get_data_from_file("figures/week 10/medium/test6/history_data_7.txt")
+    history = get_data_from_file("data/produced_files/from_07032024_171754.txt")
 
     print("Plotting...")
 

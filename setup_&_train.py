@@ -337,29 +337,29 @@ def main():
     # torch.manual_seed(0)
     # np.random.seed(0)
 
-    n_epochs = 9
-    minibatch_size = 20
+    n_epochs = 900
+    minibatch_size = 10
 
     # Data set settings
     delta_noise = 1
-    data_set = "data/data_set/data5var_k=2.806_20k"
-    data_set_size = 500
+    data_set = "data/emc_data/data5var_k=2.806_50k"
+    data_set_size = 10000
 
     # Adam parameters
     learning_rate = 5e-3
     betas_adam = (0.9, 0.999)
 
-    architecture = [7, 9, 13, 20]
-    model = networks.NetMedium(architecture).to(device)
+    architecture = [8, 12, 7]
+    model = networks.NetSmall(architecture).to(device)
 
     # test_data(model, data_set_size, delta_noise, device,
     #          minibatch_size, learning_rate, betas_adam, n_epochs)
 
-    # his = train_one(model, data_set, data_set_size, delta_noise,
-    #                minibatch_size, learning_rate, betas_adam,
-    #                n_epochs, True, architecture)
+    his = train_one(model, data_set, data_set_size, delta_noise,
+                    minibatch_size, learning_rate, betas_adam,
+                    n_epochs, True, architecture)
 
-    test_emc()
+    # test_emc()
 
 
 if __name__ == '__main__':
