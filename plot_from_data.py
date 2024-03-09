@@ -36,6 +36,17 @@ def plot_training_curve_and_moments(history):
     plt.show()
 
 
+def plot_emc(history):
+    plt.figure(figsize=(10, 7))
+    plt.plot(history["data_sizes"], history["train_results"], label="Train")
+    plt.plot(history["data_sizes"], history["test_results"], label="Test")
+    plt.xlabel("Data set size.")
+    plt.ylabel("Expected average error.")
+    plt.legend()
+    plt.title("Varying datasizes for a small net.", pad=10)
+    plt.show()
+
+
 def plot_weight_distributions(history):
     fig, axs = plt.subplots(3, 3, figsize=(24, 15))
     fig.suptitle(history["title"])
@@ -79,7 +90,9 @@ def plot_diff_curve(history):
 
 def main():
     plt.rcParams.update({'font.size': 15})
-    history = get_data_from_file("data/produced_files/from_07032024_171754.txt")
+    history = get_data_from_file("data/produced_files/from_09032024_093349.txt")
+
+    #plot_emc(history)
 
     print("Plotting...")
 

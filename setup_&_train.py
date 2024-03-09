@@ -264,19 +264,20 @@ def train_one(model, data_set, data_set_size, delta_noise,
 
 
 def test_emc():
-    n_epochs = 270
+    n_epochs = 4000
     minibatch_size = 10
     delta_noise = 1
     data_set = "data/emc_data/data5var_k=2.806_50k"
     learning_rate = 5e-3
     betas_adam = (0.9, 0.999)
-    architecture = [7, 12, 9]
+    architecture = [8, 12, 7]
     results_train = []
-    data_sizes = range(1000, 4601, 200)
+    results_test = []
+    data_sizes = range(50, 501, 50)
 
     for size in data_sizes:
         one_train_avg = []
-
+        one_test_avg = []
         for step in range(0, 10):
             model = networks.NetSmall(architecture).to(device)
 
@@ -286,22 +287,27 @@ def test_emc():
                                     n_epochs, data_start)
 
             one_train_avg.append(np.mean(history["train_loss"]))
+            one_test_avg.append(np.mean(history["val_loss"]))
 
         results_train.append(np.mean(one_train_avg))
+        results_test.append(np.mean(one_test_avg))
 
-    title = (f"Network parameters: epochs = {n_epochs}, Architecture = {type(model).__name__} with {architecture}"
+    title = (f"Network parameters: epochs = {n_epochs}, \n Architecture = {type(model).__name__} with {architecture}"
              f", batch size = {minibatch_size}, delta_noise = {delta_noise}, \n"
              f"learning rate = {learning_rate}, betas = {betas_adam}.")
 
     network_to_file({
-        "results": results_train,
+        "train_results": results_train,
+        "test_results": results_test,
         "data_sizes": data_sizes
     })
-
-    plt.plot(data_sizes, results_train)
+    plt.figure(figsize=(10, 7))
+    plt.plot(data_sizes, results_train, label="Train")
+    plt.plot(data_sizes, results_test, label="Test")
     plt.xlabel("Data set size.")
-    plt.ylabel("Expected mean error.")
-    plt.title(title)
+    plt.ylabel("Expected average error.")
+    plt.legend()
+    plt.title(title, pad=10)
     plt.show()
 
 
@@ -337,13 +343,13 @@ def main():
     # torch.manual_seed(0)
     # np.random.seed(0)
 
-    n_epochs = 900
+    n_epochs = 4000
     minibatch_size = 10
 
     # Data set settings
     delta_noise = 1
     data_set = "data/emc_data/data5var_k=2.806_50k"
-    data_set_size = 10000
+    data_set_size = 350
 
     # Adam parameters
     learning_rate = 5e-3
