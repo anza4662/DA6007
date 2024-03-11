@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 from scipy.interpolate import griddata
 
+
 def get_data_from_file(filename):
     with open(filename, "rb") as file:
         history = pk.load(file)
@@ -88,14 +89,30 @@ def plot_diff_curve(history):
     plt.show()
 
 
+def plot_diff_distribution(history):
+    fig = plt.figure(figsize=(24, 18))
+    fig.suptitle(history["title"])
+
+    for (indx, z, ep) in zip(range(1, 10), np.array(history["diff_func_per_epoch"]), history["epoch_saved"]):
+        subplt = fig.add_subplot(3, 3, indx)
+        hist = subplt.hist(z, bins=100)
+        subplt.set_title(f"Epoch {ep}")
+
+    fig.tight_layout(pad=2.5)
+    fig.text(0.5, 0.015, "y_pred - y_true value", ha="center", va="center")
+    fig.text(0.005, 0.5, "Number of occurrences", ha="center", va="center", rotation="vertical")
+    plt.show()
+
+
 def main():
     plt.rcParams.update({'font.size': 15})
-    history = get_data_from_file("data/produced_files/from_09032024_093349.txt")
+    history = get_data_from_file("results/t7/from_11032024_142858.txt")
 
     #plot_emc(history)
 
     print("Plotting...")
 
+    plot_diff_distribution(history)
     plot_diff_curve(history)
     plot_training_curve_and_moments(history)
     plot_weight_distributions(history)

@@ -343,7 +343,7 @@ def main():
     # torch.manual_seed(0)
     # np.random.seed(0)
 
-    n_epochs = 4000
+    n_epochs = 8000
     minibatch_size = 10
 
     # Data set settings
@@ -352,10 +352,13 @@ def main():
     data_set_size = 350
 
     # Adam parameters
-    learning_rate = 5e-3
+    learning_rate = 1e-3
     betas_adam = (0.9, 0.999)
 
     architecture = [8, 12, 7]
+    # architecture = [9, 12, 16, 13, 11, 9, 7]
+    # architecture = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+
     model = networks.NetSmall(architecture).to(device)
 
     # test_data(model, data_set_size, delta_noise, device,

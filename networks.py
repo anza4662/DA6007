@@ -33,6 +33,9 @@ class NetSmall(nn.Module):
     """ The small class of networks. Takes a list of 3 hidden layers. """
 
     def __init__(self, hidden_layers):
+        if len(hidden_layers) != 3:
+            raise Exception("Invalid number of hidden layers. Must be 3.")
+
         super().__init__()
         self.lin1 = nn.Linear(5, hidden_layers[0])
         self.lin2 = nn.Linear(hidden_layers[0], hidden_layers[1])
@@ -89,19 +92,19 @@ class NetSmall(nn.Module):
 #                  batch norm                   |
 #                      | + <---------------------
 #                     relu
-#                      | ---------linear(l3,l1)--
-#                 linear(l3,l2)                 |
+#                      | ---------linear(l3,l5)--
+#                 linear(l3,l4)                 |
 #                  batch norm                   |
 #                     relu                      |
-#                 linear(l2,l1)                 |
+#                 linear(l4,l5)                 |
 #                  batch norm                   |
 #                      | + <---------------------
 #                     relu
-#                      | ---------linear(l1,5)---
-#                 linear(l1, l0)                |
+#                      | ---------linear(l5,5)---
+#                 linear(l5, l6)                |
 #                  batch norm                   |
 #                     relu                      |
-#                 linear(l0,5)                  |
+#                 linear(l6,5)                  |
 #                  batch norm                   |
 #                      | + <---------------------
 #                     relu
@@ -114,18 +117,21 @@ class NetSmall(nn.Module):
 
 
 class NetMedium(nn.Module):
-    """ The medium class of networks. Takes a list of 4 hidden layers. """
+    """ The medium class of networks. Takes a list of 7 hidden layers. """
 
     def __init__(self, hidden_layers):
         super().__init__()
+        if len(hidden_layers) != 7:
+            raise Exception("Invalid number of hidden layers. Must be 7.")
+
         self.lin1 = nn.Linear(5, hidden_layers[0])
         self.lin2 = nn.Linear(hidden_layers[0], hidden_layers[1])
         self.lin3 = nn.Linear(hidden_layers[1], hidden_layers[2])
         self.lin4 = nn.Linear(hidden_layers[2], hidden_layers[3])
-        self.lin5 = nn.Linear(hidden_layers[3], hidden_layers[2])
-        self.lin6 = nn.Linear(hidden_layers[2], hidden_layers[1])
-        self.lin7 = nn.Linear(hidden_layers[1], hidden_layers[0])
-        self.lin8 = nn.Linear(hidden_layers[0], 5)
+        self.lin5 = nn.Linear(hidden_layers[3], hidden_layers[4])
+        self.lin6 = nn.Linear(hidden_layers[4], hidden_layers[5])
+        self.lin7 = nn.Linear(hidden_layers[5], hidden_layers[6])
+        self.lin8 = nn.Linear(hidden_layers[6], 5)
 
         self.lin9 = nn.Linear(5, 2)
         self.lin10 = nn.Linear(2, 1)
@@ -134,16 +140,16 @@ class NetMedium(nn.Module):
         self.bn2 = nn.BatchNorm1d(hidden_layers[1])
         self.bn3 = nn.BatchNorm1d(hidden_layers[2])
         self.bn4 = nn.BatchNorm1d(hidden_layers[3])
-        self.bn5 = nn.BatchNorm1d(hidden_layers[2])
-        self.bn6 = nn.BatchNorm1d(hidden_layers[1])
-        self.bn7 = nn.BatchNorm1d(hidden_layers[0])
+        self.bn5 = nn.BatchNorm1d(hidden_layers[4])
+        self.bn6 = nn.BatchNorm1d(hidden_layers[5])
+        self.bn7 = nn.BatchNorm1d(hidden_layers[6])
         self.bn8 = nn.BatchNorm1d(5)
         self.bn9 = nn.BatchNorm1d(2)
 
         self.skip1 = nn.Linear(5, hidden_layers[1])
         self.skip2 = nn.Linear(hidden_layers[1], hidden_layers[3])
-        self.skip3 = nn.Linear(hidden_layers[3], hidden_layers[1])
-        self.skip4 = nn.Linear(hidden_layers[1], 5)
+        self.skip3 = nn.Linear(hidden_layers[3], hidden_layers[5])
+        self.skip4 = nn.Linear(hidden_layers[5], 5)
 
     def forward(self, x):
         skip_1 = self.skip1(x)
@@ -194,27 +200,27 @@ class NetMedium(nn.Module):
 #                  batch norm                  |
 #                      | + <--------------------
 #                     relu
-#                      | --------linear(l5,l3)--
-#                 linear(l5,l4)                |
+#                      | --------linear(l5,l7)--
+#                 linear(l5,l6)                |
 #                  batch norm                  |
 #                     relu                     |
-#                 linear(l4,l3)                |
+#                 linear(l6,l7)                |
 #                  batch norm                  |
 #                      | + <--------------------
 #                     relu
-#                      | --------linear(l3,l1)--
-#                 linear(l3,l2)                |
+#                      | --------linear(l7,l9)--
+#                 linear(l7,l8)                |
 #                  batch norm                  |
 #                     relu                     |
-#                 linear(l2,l1)                |
+#                 linear(l8,l9)                |
 #                  batch norm                  |
 #                      | + <--------------------
 #                     relu
-#                      | ---------linear(l1,5)--
-#                 linear(l1, l0)               |
+#                      | ---------linear(l9,5)--
+#                 linear(l9, l10)              |
 #                  batch norm                  |
 #                     relu                     |
-#                 linear(l0,5)                 |
+#                 linear(l10,5)                |
 #                  batch norm                  |
 #                      | + <--------------------
 #                     relu
@@ -227,27 +233,25 @@ class NetMedium(nn.Module):
 
 
 class NetLarge(nn.Module):
-    """ The large class of networks. Takes a list of 6 hidden layers. """
+    """ The large class of networks. Takes a list of 11 hidden layers. """
 
     def __init__(self, hidden_layers):
         super().__init__()
+        if len(hidden_layers) != 11:
+            raise Exception("Invalid number of hidden layers. Must be 11.")
+
         self.lin1 = nn.Linear(5, hidden_layers[0])
         self.lin2 = nn.Linear(hidden_layers[0], hidden_layers[1])
-
         self.lin3 = nn.Linear(hidden_layers[1], hidden_layers[2])
         self.lin4 = nn.Linear(hidden_layers[2], hidden_layers[3])
-
         self.lin5 = nn.Linear(hidden_layers[3], hidden_layers[4])
         self.lin6 = nn.Linear(hidden_layers[4], hidden_layers[5])
-
-        self.lin7 = nn.Linear(hidden_layers[5], hidden_layers[4])
-        self.lin8 = nn.Linear(hidden_layers[4], hidden_layers[3])
-
-        self.lin9 = nn.Linear(hidden_layers[3], hidden_layers[2])
-        self.lin10 = nn.Linear(hidden_layers[2], hidden_layers[1])
-
-        self.lin11 = nn.Linear(hidden_layers[1], hidden_layers[0])
-        self.lin12 = nn.Linear(hidden_layers[0], 5)
+        self.lin7 = nn.Linear(hidden_layers[5], hidden_layers[6])
+        self.lin8 = nn.Linear(hidden_layers[6], hidden_layers[7])
+        self.lin9 = nn.Linear(hidden_layers[7], hidden_layers[8])
+        self.lin10 = nn.Linear(hidden_layers[8], hidden_layers[9])
+        self.lin11 = nn.Linear(hidden_layers[9], hidden_layers[10])
+        self.lin12 = nn.Linear(hidden_layers[10], 5)
 
         self.lin13 = nn.Linear(5, 2)
         self.lin14 = nn.Linear(2, 1)
@@ -258,20 +262,20 @@ class NetLarge(nn.Module):
         self.bn4 = nn.BatchNorm1d(hidden_layers[3])
         self.bn5 = nn.BatchNorm1d(hidden_layers[4])
         self.bn6 = nn.BatchNorm1d(hidden_layers[5])
-        self.bn7 = nn.BatchNorm1d(hidden_layers[4])
-        self.bn8 = nn.BatchNorm1d(hidden_layers[3])
-        self.bn9 = nn.BatchNorm1d(hidden_layers[2])
-        self.bn10 = nn.BatchNorm1d(hidden_layers[1])
-        self.bn11 = nn.BatchNorm1d(hidden_layers[0])
+        self.bn7 = nn.BatchNorm1d(hidden_layers[6])
+        self.bn8 = nn.BatchNorm1d(hidden_layers[7])
+        self.bn9 = nn.BatchNorm1d(hidden_layers[8])
+        self.bn10 = nn.BatchNorm1d(hidden_layers[9])
+        self.bn11 = nn.BatchNorm1d(hidden_layers[10])
         self.bn12 = nn.BatchNorm1d(5)
         self.bn13 = nn.BatchNorm1d(2)
 
         self.skip1 = nn.Linear(5, hidden_layers[1])
         self.skip2 = nn.Linear(hidden_layers[1], hidden_layers[3])
         self.skip3 = nn.Linear(hidden_layers[3], hidden_layers[5])
-        self.skip4 = nn.Linear(hidden_layers[5], hidden_layers[3])
-        self.skip5 = nn.Linear(hidden_layers[3], hidden_layers[1])
-        self.skip6 = nn.Linear(hidden_layers[1], 5)
+        self.skip4 = nn.Linear(hidden_layers[5], hidden_layers[7])
+        self.skip5 = nn.Linear(hidden_layers[7], hidden_layers[9])
+        self.skip6 = nn.Linear(hidden_layers[9], 5)
 
     def forward(self, x):
         skip_1 = self.skip1(x)
