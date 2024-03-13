@@ -20,7 +20,11 @@ def plot_training_curve_and_moments(history):
 
     axs[0].plot(history["val_loss"], label="val_loss")
     axs[0].plot(history["train_loss"], label="train_loss")
+    axs[0].set_xscale("log")
+    axs[0].set_xticks([1, 10, 100, 1000], ["1", "10", "100", "1k"])
     axs[0].set_ylabel("MSE")
+    # axs[0].set_ylim(0, 8)
+    axs[0].set_title("Training and validation curve.")
     axs[0].grid()
     axs[0].set_xlabel("Epoch")
     axs[0].legend()
@@ -106,13 +110,13 @@ def plot_diff_distribution(history):
 
 def main():
     plt.rcParams.update({'font.size': 15})
-    history = get_data_from_file("results/t7/from_11032024_142858.txt")
+    history = get_data_from_file("figures/week11/small_net_tests/[6,8,7]/from_13032024_191916.txt")
 
-    #plot_emc(history)
+    # plot_emc(history)
 
     print("Plotting...")
 
-    plot_diff_distribution(history)
+    # plot_diff_distribution(history)
     plot_diff_curve(history)
     plot_training_curve_and_moments(history)
     plot_weight_distributions(history)

@@ -1,3 +1,4 @@
+import random
 import time
 from datetime import datetime
 
@@ -210,7 +211,12 @@ def train_one(model, data_set, data_set_size, delta_noise,
         y_batch = train_y[start:start + minibatch_size].to(device)
         batches.append((x_batch, y_batch))
 
-    with tqdm.tqdm(range(1, n_epochs + 1), ncols=150, colour="green") as bar:
+    # plt.ion()
+    # graph = plt.plot([], [])[0]
+    # plt.xscale("log")
+    # plt.grid()
+
+    with tqdm.tqdm(range(1, n_epochs + 1), ncols=100, colour="green") as bar:
         bar.set_description(f"Training model {type(model).__name__}")
 
         for epoch in bar:
@@ -250,6 +256,13 @@ def train_one(model, data_set, data_set_size, delta_noise,
 
                 history["diff_func_per_epoch"].append(diff)
 
+            # if epoch > 1:
+            #     graph.remove()
+            #     graph = plt.plot(range(1, epoch + 1), history["train_loss"], color="g")[0]
+            #     graph = plt.plot(range(1, epoch + 1), history["val_loss"], color="r")[0]
+            #     plt.xlim(1, epoch)
+            #     plt.pause(0.0000001)
+
             bar.set_postfix({"Train": loss.item(), "Test": val_loss.item()})
 
     if plot_history:
@@ -282,6 +295,7 @@ def test_emc():
             model = networks.NetSmall(architecture).to(device)
 
             data_start = size * step
+
             history = train_one_emc(model, data_set, size, delta_noise,
                                     minibatch_size, learning_rate, betas_adam,
                                     n_epochs, data_start)
@@ -301,6 +315,7 @@ def test_emc():
         "test_results": results_test,
         "data_sizes": data_sizes
     })
+
     plt.figure(figsize=(10, 7))
     plt.plot(data_sizes, results_train, label="Train")
     plt.plot(data_sizes, results_test, label="Test")
@@ -311,23 +326,56 @@ def test_emc():
     plt.show()
 
 
-def test_data(model, data_set_size, delta_noise, minibatch_size, learning_rate, betas_adam, n_epochs):
+def modelwise_dd(data_set, data_set_size, delta_noise, minibatch_size,
+                 learning_rate, betas_adam, n_epochs):
+
     results_train = []
     results_test = []
-    k_lst = [2.01, 2.408, 2.806, 3.204, 3.602, 4.0]
 
-    for data_k in k_lst:
-        data_set = f"data/data_set/data5var_k={data_k}_20k"
-        print("Training on dataset: ", data_set)
-        history = train_one(model, data_set, data_set_size, delta_noise,
-                            minibatch_size, learning_rate, betas_adam,
-                            n_epochs, False)
-        results_train.append(history["train_loss"])
-        results_test.append(history["val_loss"])
+    models = [[5, 5, 5], [6, 8, 7], [8, 12, 7], [10, 14, 8], [12, 16, 9], [13, 20, 11],
+              [14, 27, 12], [17, 32, 14], [21, 38, 17], [25, 44, 19], [30, 50, 20],
+              [37, 62, 23], [50, 75, 35], [80, 130, 60]]
+
+    for architecture in models:
+        print("Training with architecture: ", architecture)
+        a, b = [], []
+        for step in range(0, 10):
+            model = networks.NetSmall(architecture).to(device)
+
+            data_start = data_set_size * step
+            print(f"Training on data from {data_start} to {data_start + data_set_size}")
+            history = train_one_emc(model, data_set, data_set_size, delta_noise,
+                                    minibatch_size, learning_rate, betas_adam,
+                                    n_epochs, data_start)
+
+            a.append(history["train_loss"][-1])
+            b.append(history["val_loss"][-1])
+
+        results_train.append(np.mean(a))
+        results_test.append(np.mean(b))
 
     title = (f"Network parameters: Architecture = {type(model).__name__},  epochs = {n_epochs}, "
              f"batch size = {minibatch_size}, \n delta_noise = {delta_noise}, data set size = {data_set_size / 1000}k, "
-             f"learning rate = {learning_rate}, betas = {betas_adam}")
+             f"learning rate = {learning_rate}, betas = {betas_adam}.")
+
+    network_to_file({
+        "train_results": results_train,
+        "test_results": results_test,
+        "models": models
+    })
+
+    x = range(1, len(models) + 1)
+    plt.figure(figsize=(8, 8))
+    plt.plot(x, results_test, label="Test loss")
+    plt.plot(x, results_train, label="Train loss")
+    plt.xlabel("Model")
+    plt.ylabel("Loss")
+    plt.title(title, pad=20)
+    models = [str(m) for m in models]
+    plt.xticks(x, models, rotation= -50)
+    plt.grid()
+    plt.legend()
+    plt.show()
 
 
 def network_to_file(history):
@@ -347,22 +395,27 @@ def main():
     minibatch_size = 10
 
     # Data set settings
-    delta_noise = 1
-    data_set = "data/emc_data/data5var_k=2.806_50k"
-    data_set_size = 350
+    delta_noise = 2
+    data_set = "data/data_set/data5var_k=2.806_50k"
+    data_set_size = 300
 
     # Adam parameters
-    learning_rate = 1e-3
+    learning_rate = 5e-4
     betas_adam = (0.9, 0.999)
 
-    architecture = [8, 12, 7]
+    architecture = [43, 90, 30]
     # architecture = [9, 12, 16, 13, 11, 9, 7]
-    # architecture = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    # architecture = [7, 11, 15, 21, 17, 15, 12, 10, 8, 7, 6]
 
     model = networks.NetSmall(architecture).to(device)
+    # model = networks.NetMedium(architecture).to(device)
+    # model = networks.NetLarge(architecture).to(device)
 
     # test_data(model, data_set_size, delta_noise, device,
     #          minibatch_size, learning_rate, betas_adam, n_epochs)
+
+    # modelwise_dd(data_set, data_set_size, delta_noise,
+    #             minibatch_size, learning_rate, betas_adam, n_epochs)
 
     his = train_one(model, data_set, data_set_size, delta_noise,
                     minibatch_size, learning_rate, betas_adam,
