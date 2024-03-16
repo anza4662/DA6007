@@ -98,7 +98,7 @@ def plot_diff_distribution(history):
 
 def main():
     plt.rcParams.update({'font.size': 15})
-    history = get_data_from_file("data/produced_files/from_15032024_182218.txt")
+    history = get_data_from_file("data/produced_files/from_15032024_170545.txt")
 
     print("Plotting...")
 
