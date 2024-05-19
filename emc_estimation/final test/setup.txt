@@ -1,0 +1,8 @@
+k = 2.8
+c = 2
+x_range = 1.5
+noise_std = 0.10126239727092719
+architecture = [6, 12, 7]
+learning_rate = 0.1
+Three variables.
+Five initializations for ten data sets.

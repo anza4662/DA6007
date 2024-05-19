@@ -1,0 +1,6 @@
+Sample size 10000
+Noise std. 0.25
+Minibatch size 50
+Learning rate 0.001
+Betas Adam (0.9, 0.99)
+k, c, x_range 2.5, 2, 3
